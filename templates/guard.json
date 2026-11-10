@@ -1,7 +1,13 @@
 {
   "enabled": true,
   "yaml": true,
-  "secrets": ["ApiKey.txt", "sheet_webapp.json"],
+  "secrets": [
+    "ApiKey.txt",
+    ".keystore",
+    ".jks",
+    "google-services.json",
+    "GoogleService-Info.plist"
+  ],
   "no_edit": [],
   "no_cmd": []
 }

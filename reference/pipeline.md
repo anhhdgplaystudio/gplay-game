@@ -29,13 +29,14 @@ Tiếp tục sau khi gián đoạn: `O status` → đọc `.game/state.json` (ph
 
 ## Từng bước
 
-**1. Intake.** `O init --slug <tên>` → đưa người dùng file `.game/intake.md` (ý tưởng, link game tham khảo, ảnh, video, mô tả,
-phạm vi bản đầu, base, SDK, ngôn ngữ). Người dùng điền (hoặc dán vào chat, orchestrator ghi vào file).
-Kiểm đủ: thiếu mục bắt buộc (cơ chế, tham khảo, base) → hỏi lại. `O log G0 "intake đủ"` · `O phase research`.
+**1. Intake** (`/gplay-game:start`). Xin tài liệu tham khảo **trước** (link store / video / ảnh / mockup / base), orchestrator tự xem
+(WebFetch store, `scripts/frames.py` trích frame video rồi Read, Read ảnh), đoán các mục còn lại kèm nhãn *(đoán)* / *(mặc định)*,
+hiện thẻ "Mình hiểu như sau", chỉ hỏi bằng AskUserQuestion mục quan trọng còn mơ hồ (≤ 2 lượt), người dùng đồng ý mới ghi `.game/intake.md`.
+`O log G0 "intake xong"` · `O phase research`.
 
 **2. Nghiên cứu ∥ Đọc base.** Viết 2 task (mẫu `templates/tasks/`), chạy song song (chỉ đọc):
 - `R1` nghiên cứu: game tham khảo (store, video, bài phân tích), cơ chế, vòng meta, monetization, điểm khác biệt, rủi ro.
-  Video: worker không xem được video; nếu cần, orchestrator trích frame trước (`ffmpeg -i v.mp4 -vf fps=1/3 frames/%03d.png`, ra ổ tạm) rồi đưa đường dẫn.
+  Video: worker không xem được video; nếu cần, orchestrator trích frame trước (`python scripts/frames.py v.mp4 <ổ tạm>/frames --sheet`, OpenCV hoặc ffmpeg) rồi đưa đường dẫn.
 - `R2` đọc base: cấu trúc repo, framework tái dùng được, gameplay cũ cần xoá, tàn dư identity / keystore, tool sẵn có, rủi ro kỹ thuật.
 `O run R1 R2 --parallel` → đọc `.game/research/R1.md`, `R2.md`.
 

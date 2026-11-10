@@ -114,6 +114,8 @@ INTAKE = """# Intake — điền rồi báo Claude
 - Ảnh (đường dẫn file hoặc thư mục):
 - Video gameplay (link / file):
 - Art mẫu / mockup UI có sẵn:
+- Frame video đã trích (đường dẫn, cho R1):
+- Nhận xét từ tài liệu (cơ chế, vòng chơi, UI, meta thấy được):
 
 ## 3. Phạm vi bản đầu
 - Số level / màn bản đầu:

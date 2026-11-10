@@ -1,38 +1,60 @@
 ---
 name: start
-description: Bắt đầu dự án game mới theo pipeline GPlay - tạo .game/, bật guard, hỏi intake bằng hộp chọn (AskUserQuestion).
+description: Bắt đầu dự án game mới theo pipeline GPlay - xin tài liệu tham khảo trước, tự xem link / video / ảnh, chỉ hỏi phần còn thiếu, ghi intake + bật guard.
 disable-model-invocation: true
-argument-hint: "[tên-game]"
+argument-hint: "[tên-game] [link / đường dẫn tham khảo...]"
 ---
 # /gplay-game:start
 
 `O = python "${CLAUDE_PLUGIN_ROOT}/scripts/orch.py"`, chạy ở gốc repo dự án.
 Quy trình đầy đủ: `${CLAUDE_PLUGIN_ROOT}/reference/pipeline.md`. Luật chung: skill `gplay-game` + `${CLAUDE_PLUGIN_ROOT}/RULES.md`.
 
-**Cách hỏi:** mọi câu hỏi người dùng chọn được thì hỏi bằng tool **AskUserQuestion**, không liệt kê câu hỏi thành chữ trong chat.
-Mỗi lượt tối đa 4 câu, mỗi câu 2–4 phương án, phương án khuyến nghị đặt đầu và thêm "(Recommended)", `header` ≤ 12 ký tự.
-Phương án lấy từ thứ đã thấy trong repo (tên thư mục, file có sẵn), không bịa. Ô "Other" có sẵn để người dùng gõ tự do (link, mô tả).
-Câu đã có trả lời (từ `$ARGUMENTS`, intake.md đã điền) thì bỏ qua.
+**Nguyên tắc hỏi** (học từ Claude-Code-Game-Studios `/start`, `/brainstorm`):
+- Xin **tài liệu trước**, tự xem, rồi mới hỏi. Không hỏi điều đã đọc ra được hoặc có mặc định hợp lý: đoán, ghi nhãn *(đoán)* / *(mặc định)* trên thẻ tóm tắt, người dùng sửa ở đó.
+- Hỏi bằng tool **AskUserQuestion**: ≤ 4 câu / lượt, 2–4 phương án lấy từ thứ đã thấy, khuyến nghị đặt đầu + "(Recommended)", `header` ≤ 12 ký tự.
+  Câu hỏi là thứ cuối cùng trong câu trả lời. Bỏ qua / tắt hộp hỏi không phải là trả lời: hỏi lại bằng chữ.
+- Tổng cộng tối đa 2 lượt hỏi chi tiết. Chỉ hỏi câu mà câu trả lời làm đổi plan.
 
-1. Đã có `.game/` → không init lại; báo người dùng dùng `/gplay-game:continue`. Dừng.
-2. Xem nhanh gốc repo (thư mục, `ProjectSettings/ProjectVersion.txt`, `AGENTS.md`) để làm phương án cho câu hỏi.
-   Tên game = `$ARGUMENTS`; trống → AskUserQuestion "Tên game (slug)?" với 2 phương án suy từ tên repo / thư mục.
-3. `O init --slug <tên>`: tạo `.game/` (intake, config, lịch sử, task R1 / R2) và `.claude/guard.json` (chặn sửa YAML / .meta / bí mật).
-4. **Lượt 1** (AskUserQuestion, 4 câu):
-   - `Cơ chế`: cơ chế chính (phương án theo tên game + `${CLAUDE_PLUGIN_ROOT}/reference/mechanics.md`);
-   - `Nền tảng`: Android + iOS / Android / iOS;
-   - `Base`: thư mục lạ ở gốc repo (vd `Buzzy Bus/`) là base / clone base template GPlay / dự án Unity đang mở là base;
-   - `Bí mật` (multiSelect): file bí mật chặn thêm trong guard.json: keystore (`*.keystore`, `*.jks`), `google-services.json`,
-     `GoogleService-Info.plist`, không thêm. Chỉ ghi tên / mẫu file vào `secrets`, không đọc nội dung.
-5. **Lượt 2** (AskUserQuestion, 4 câu):
-   - `Số level`: số level bản đầu (vd 20 / 50 / 100);
-   - `Tính năng` (multiSelect): hint, daily reward, lucky spin, shop / IAP;
-   - `SDK` (multiSelect): quảng cáo (AdMob / AppLovin MAX), Firebase Analytics, Unity IAP, chưa chọn (chỉ tên, không key);
-   - `Ngôn ngữ`: chỉ EN / EN + VI / đủ bộ ngôn ngữ như game GPlay trước.
-6. **Lượt 3** (AskUserQuestion, 2 câu, câu trả lời tự do qua "Other"):
-   - `Ý tưởng`: mô tả ngắn người chơi làm gì, thắng / thua (phương án: "Gõ ở Other", "Điền vào intake.md", "Lấy theo game tham khảo");
-   - `Tham khảo`: link store / video / ảnh / mockup (phương án: "Dán link ở Other", "Điền vào intake.md", "Chưa có, tự tìm theo cơ chế").
-7. Sau mỗi lượt chép câu trả lời vào đúng mục của `.game/intake.md`; bí mật → thêm vào `secrets` của `.claude/guard.json`.
-   Chưa có `AGENTS.md` / `.claude/game-profile.md` → ghi 1 dòng "tạo ở bước plan" (mẫu `${CLAUDE_PLUGIN_ROOT}/templates/`).
-8. Báo ngắn: những gì đã ghi vào intake (bảng 2 cột), mục còn trống. Người dùng chọn "Điền vào intake.md" ở câu nào thì dừng chờ họ điền.
-9. Đủ thông tin → `O log G0 "intake xong"` → làm tiếp như `/gplay-game:continue`.
+## 1. Đọc dự án (im lặng, chưa báo)
+- Đã có `.game/` → không init lại; báo dùng `/gplay-game:continue`. Dừng.
+- Ghi nhận: thư mục ở gốc repo (thư mục lạ như `Buzzy Bus/` có thể là base hoặc art), `ProjectSettings/ProjectVersion.txt`,
+  `AGENTS.md`, `.claude/game-profile.md`, ảnh / video / PSD có sẵn trong repo (Glob `*.mp4|*.mov|*.png|*.jpg|*.psd`, ngoài `Library/`).
+- Slug = `$ARGUMENTS` (từ đầu không phải link / đường dẫn), không có thì tự đặt theo tên repo / thư mục (chữ thường, gạch ngang). **Không hỏi**, hiện trên thẻ.
+
+## 2. Xin tài liệu tham khảo (câu hỏi đầu tiên, duy nhất của lượt này)
+`$ARGUMENTS` đã có link / đường dẫn → bỏ qua bước này. Không thì hỏi bằng chữ (câu trả lời tự do, nhiều dòng) rồi **dừng chờ**:
+> Gửi mình tài liệu tham khảo cho game (bao nhiêu cũng được, mỗi dòng 1 cái): link store / YouTube / TikTok, file hoặc thư mục video gameplay,
+> ảnh, mockup UI, art, PSD, tài liệu thiết kế. Kèm 1–2 câu ý tưởng nếu có. Chưa có gì thì gõ "chưa có" + tên game tương tự.
+
+Nếu thấy file sẵn trong repo ở bước 1, nhắc tên chúng trong câu hỏi ("mình thấy `Buzzy Bus/Video/demo.mp4`, có phải tài liệu tham khảo không?").
+
+## 3. Tự xem tài liệu
+`O init --slug <slug>` (tạo `.game/`, task R1 / R2, `.claude/guard.json`). Rồi xem từng nguồn, ghi đường dẫn / URL vào `.game/intake.md` mục 2:
+- **Link store** (Google Play / App Store): WebFetch tên game, thể loại, mô tả, số tải, ảnh chụp; ghi cơ chế, meta, kiểu quảng cáo / IAP thấy được.
+- **YouTube / TikTok**: WebFetch tiêu đề + mô tả; không xem được hình → ghi "cần frame" (người dùng tải video về thì trích frame được).
+- **Video file**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/frames.py" <video> <ổ tạm>/frames/<tên> --sheet` rồi Read `sheet.jpg` + vài frame
+  (ổ tạm: `D:/tmp` nếu có, không thì scratchpad; không để trong repo). Ghi: vòng chơi 1 level, thao tác, thắng / thua, UI (HUD, nút), meta.
+- **Ảnh / mockup / art**: Read ảnh (thư mục nhiều ảnh: xem tối đa ~12 ảnh tiêu biểu). PSD: chỉ ghi tên + kích thước, xử lý ở pipeline art.
+- **Chỉ có tên game tương tự**: WebSearch tên game + "gameplay", lấy trang store.
+- **Thư mục base / dự án Unity**: liệt kê `Assets/` cấp 1–2, Unity version, có framework nào (popup, UI, SDK). R2 sẽ đọc kỹ.
+Gom kết quả thành thẻ tóm tắt.
+
+## 4. Thẻ "Mình hiểu như sau" + hỏi phần thiếu
+Hiện bảng (mỗi dòng: mục · giá trị · nguồn: link / file / *(đoán)* / *(mặc định)*):
+slug, cơ chế chính, vòng chơi 1 level, thắng / thua, điểm khác biệt, nền tảng, base, số level bản đầu, tính năng meta,
+SDK (chỉ tên), ngôn ngữ, art / Spine, file bí mật chặn trong guard.
+
+Mặc định khi không có dữ liệu (ghi *(mặc định)*, không hỏi): nền tảng Android + iOS · ngôn ngữ như game GPlay trước ·
+SDK quảng cáo + Firebase Analytics · guard chặn thêm `.keystore`, `.jks`, `google-services.json`, `GoogleService-Info.plist`.
+
+Rồi **một lượt AskUserQuestion** chỉ gồm các mục quan trọng còn mơ hồ (thường: cơ chế khi tài liệu cho nhiều hướng, base khi có nhiều ứng viên,
+số level / phạm vi bản đầu, điểm khác biệt). Phương án lấy từ thẻ ("Giống game X", "X + thêm Y"...). Không có gì mơ hồ → bỏ qua lượt này.
+Trả lời mở ra mơ hồ mới thì được thêm tối đa 1 lượt.
+
+## 5. Ghi + chốt G0
+- Cập nhật thẻ theo câu trả lời, hiện lại, rồi AskUserQuestion "Ghi vào `.game/intake.md`?": `Ghi (Recommended)` / `Sửa 1 mục` / `Chưa ghi`.
+  Chỉ ghi khi chọn Ghi. Sửa → hỏi mục nào (bằng chữ), hiện thẻ lại, hỏi lại.
+- Ghi: điền mọi mục của `.game/intake.md` (giữ nhãn *(đoán)* / *(mặc định)*), thêm bí mật vào `secrets` của `.claude/guard.json`
+  (chỉ tên / đuôi file, không đọc nội dung). Frame video đã trích: ghi đường dẫn vào intake mục 2 để R1 dùng.
+- Chưa có `AGENTS.md` / `.claude/game-profile.md` → ghi 1 dòng "tạo ở bước plan" (mẫu `${CLAUDE_PLUGIN_ROOT}/templates/`).
+- `O log G0 "intake xong: <cơ chế>, <số nguồn> nguồn tham khảo"` → làm tiếp như `/gplay-game:continue` (chạy R1 / R2).
