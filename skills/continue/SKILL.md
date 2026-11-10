@@ -12,6 +12,9 @@ argument-hint: "[ghi chú thêm]"
 2. `O status` + `O history -n 25`. Đọc `.game/plan.md` nếu có.
 3. Báo ngắn: giai đoạn, cổng duyệt đã qua (G0–G3), task xong / trượt / đang chờ, việc tiếp theo.
 4. Làm tiếp đúng bước đó theo pipeline.md:
+   - **chưa có G0** (giai đoạn intake): làm đúng luồng intake của `${CLAUDE_PLUGIN_ROOT}/skills/start/SKILL.md` (đọc file đó),
+     bỏ bước init. Đọc `.game/intake.md` trước: mục đã điền thì giữ. **Câu hỏi đầu tiên là xin tài liệu tham khảo** (link / video / ảnh / mockup)
+     bằng chữ rồi dừng chờ; không hỏi cơ chế / nền tảng / base trước khi xem tài liệu;
    - sau G0: `O run R1 R2 --parallel` (task R1 / R2 đã có sẵn trong `.game/tasks/` từ lúc init),
      rồi câu hỏi + đề xuất từ kết quả nghiên cứu → chờ G1;
    - sau G1: `/gplay-game:plan`; sau G2: `/gplay-game:split` rồi `/gplay-game:run`;

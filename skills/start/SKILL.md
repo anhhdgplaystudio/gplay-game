@@ -16,7 +16,8 @@ Quy trình đầy đủ: `${CLAUDE_PLUGIN_ROOT}/reference/pipeline.md`. Luật c
 - Tổng cộng tối đa 2 lượt hỏi chi tiết. Chỉ hỏi câu mà câu trả lời làm đổi plan.
 
 ## 1. Đọc dự án (im lặng, chưa báo)
-- Đã có `.game/` → không init lại; báo dùng `/gplay-game:continue`. Dừng.
+- Đã có `.game/`: chưa có G0 (`O history --event G0` trống) → không init lại, làm tiếp từ bước 2 (giữ mục intake đã điền);
+  đã có G0 → báo dùng `/gplay-game:continue`. Dừng.
 - Ghi nhận: thư mục ở gốc repo (thư mục lạ như `Buzzy Bus/` có thể là base hoặc art), `ProjectSettings/ProjectVersion.txt`,
   `AGENTS.md`, `.claude/game-profile.md`, ảnh / video / PSD có sẵn trong repo (Glob `*.mp4|*.mov|*.png|*.jpg|*.psd`, ngoài `Library/`).
 - Slug = `$ARGUMENTS` (từ đầu không phải link / đường dẫn), không có thì tự đặt theo tên repo / thư mục (chữ thường, gạch ngang). **Không hỏi**, hiện trên thẻ.
