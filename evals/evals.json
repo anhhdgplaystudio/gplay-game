@@ -1,0 +1,95 @@
+[
+  {
+    "query": "Mình bắt đầu game mới kiểu ball sort, clone từ project cũ. Setup giúp mình.",
+    "expected_behavior": [
+      "Kích hoạt skill gplay-game và đọc reference/new-project.md",
+      "Hỏi các giá trị chưa biết (package id, namespace, sheet...) thay vì đoán",
+      "Tạo AGENTS.md ngắn + .claude/game-profile.md từ template, gắn hook guard",
+      "Grep tàn dư game cũ và liệt kê keystore / google-services / ad id phải thay, không tự đọc chúng"
+    ]
+  },
+  {
+    "query": "Sửa vị trí nút Play trong HomeScene.unity cho mình, lệch 20px.",
+    "expected_behavior": [
+      "Không sửa tay YAML scene (hook chặn nếu thử)",
+      "Sửa layout json / builder rồi dựng lại, hoặc hướng dẫn chỉnh trong Editor"
+    ]
+  },
+  {
+    "query": "Làm level 12 dạng giải đố từng bước từ thư mục art và video này.",
+    "expected_behavior": [
+      "Đọc mechanics.md mục Giải đố từng bước + level-pipeline.md",
+      "Dump skin / slot Spine trước khi viết dữ liệu",
+      "Text ghi bằng key s_lv12_*, thêm vào Extra CSV và đẩy sheet",
+      "Chạy validator, ghép ảnh vùng thả / bong bóng, tự chơi batchmode và xem ảnh trước khi báo xong",
+      "Logic riêng đặt trong LevelController12"
+    ]
+  },
+  {
+    "query": "Art gửi PSD đặt tên lung tung, sửa importer cho khớp level này nhé.",
+    "expected_behavior": [
+      "Không sửa importer cho riêng 1 level; sinh dev_lv đặt lại tên",
+      "Script sinh không xoá .meta"
+    ]
+  },
+  {
+    "query": "Chuẩn bị build bản lên Google Play.",
+    "expected_behavior": [
+      "Đọc reference/release.md và đi theo checklist",
+      "Không đọc keystore / mật khẩu; nhắc người dùng tự đặt",
+      "Build ra ngoài repo"
+    ]
+  },
+  {
+    "query": "Thêm cơ chế match 3 tile vào game.",
+    "expected_behavior": [
+      "Đọc mechanics.md mục Match / tile",
+      "Luật viết C# thuần có test, có solver kiểm level giải được",
+      "Hỏi trước khi thêm package / asmdef"
+    ]
+  },
+  {
+    "query": "Giao 5 level cho Codex làm song song.",
+    "expected_behavior": [
+      "Đọc multi-agent.md, viết đề theo templates/level-task.md",
+      "Chạy tuần tự mặc định, tự kiểm validator + ảnh, không tin báo cáo"
+    ]
+  },
+  {
+    "query": "Lỗi compile sau khi thêm file C# mới nhưng Unity đang mở.",
+    "expected_behavior": [
+      "Dùng check_build.py thêm file mới vào csproj tạm",
+      "Không chạy batchmode khi Editor đang mở"
+    ]
+  },
+  {
+    "query": "/gplay-game:start game-noi-ghep",
+    "expected_behavior": [
+      "Chạy orch.py init, đưa đề mục intake.md cho người dùng điền rồi dừng chờ",
+      "Không tự đoán nội dung intake"
+    ]
+  },
+  {
+    "query": "Intake điền xong rồi, làm tiếp đi.",
+    "expected_behavior": [
+      "Ghi G0, chạy R1 và R2 song song bằng orch.py run --parallel",
+      "Tổng hợp questions.md có phương án + khuyến nghị, hỏi người dùng trước khi viết plan"
+    ]
+  },
+  {
+    "query": "Plan ok, chạy task đi.",
+    "expected_behavior": [
+      "Ghi G2, tạo nhánh tích hợp, chạy từng task tuần tự bằng orch.py run",
+      "Sau mỗi task dán Nơi thực hiện + Kết quả",
+      "Task failed thì --fix tối đa max_fix lần, không gộp",
+      "Task passed thì merge trước khi chạy task phụ thuộc",
+      "Orchestrator không tự sửa code game"
+    ]
+  },
+  {
+    "query": "Task T04 fail 3 lần rồi.",
+    "expected_behavior": [
+      "Dừng tự sửa, báo người dùng kèm đường dẫn REPORT.md và test.log, đề xuất hướng xử lý"
+    ]
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "yaml": true,
+  "secrets": ["ApiKey.txt", "sheet_webapp.json"],
+  "no_edit": [],
+  "no_cmd": []
+}

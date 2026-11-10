@@ -1,0 +1,13 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "gplay-game",
+  "version": "0.1.0",
+  "description": "GPlay: quy trình làm game puzzle casual mobile mới bằng Unity, điều phối claude CLI theo task",
+  "author": {
+    "name": "anhhd",
+    "email": "anhhd.gplaystudio@gmail.com"
+  },
+  "skills": [
+    "./"
+  ]
+}
