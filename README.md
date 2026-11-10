@@ -19,5 +19,5 @@ Chặn sửa tay YAML Unity, sửa `.meta`, đọc file bí mật, lệnh nguy h
 
 ## Cấu trúc
 
-`SKILL.md` (skill kiến thức) · `skills/*` (lệnh) · `reference/` · `templates/` · `scripts/` (orch.py, guard.py, check_build.py,
+`SKILL.md` (skill kiến thức) · `skills/*` (lệnh) · `reference/` · `templates/` · `scripts/` (orch.py, guard.py, frames.py, check_build.py,
 check_dev.py, compose_dev.py) · `hooks/hooks.json` · `RULES.md` + `guard.json` (luật chung) · `LEARNINGS.md` · `CHANGELOG.md` · `evals/`.

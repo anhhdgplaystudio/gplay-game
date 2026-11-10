@@ -19,3 +19,7 @@
 - 2026-11-08: task làm tay: `mode: manual` (run bỏ qua), lệnh `/gplay-game:open` (dựng nhánh / worktree, in lệnh claude tiếp phiên cũ)
   + `/gplay-game:done` (commit, chép transcript, test, REPORT.md, gộp). Làm tay được cả khi đã hết `max_fix`. Test chạy với
   PYTHONUTF8=1 (Windows). parse_task: `T1` không còn khớp nhầm `T10`. Đã chạy thử: open → sửa → done trượt → open lại cùng worktree → done đạt → gộp.
+- 2026-11-10: `/gplay-game:start` làm lại theo Claude-Code-Game-Studios (`/start`, `/brainstorm`): xin tài liệu tham khảo trước
+  (link store / video / ảnh / mockup), tự xem, đoán mục còn lại kèm nhãn *(đoán)* / *(mặc định)*, thẻ "Mình hiểu như sau",
+  chỉ hỏi mục mơ hồ bằng AskUserQuestion (≤ 2 lượt), đồng ý mới ghi intake; slug tự đặt. Thêm `scripts/frames.py`
+  (trích frame video, tự cắt viền đen, `--sheet`). Mọi lệnh hỏi bằng AskUserQuestion. guard.json mẫu chặn sẵn keystore / google-services.
