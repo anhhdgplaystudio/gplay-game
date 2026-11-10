@@ -12,3 +12,5 @@ argument-hint: "[lệnh test thêm]"
 2. `O test` (thêm `--cmd "<lệnh>"` cho từng lệnh trong `$ARGUMENTS`). Có Unity batchmode trong lệnh test → hỏi đóng Editor trước.
 3. Đọc log, báo kết quả. Có ảnh chụp chạy thử: phải XEM ảnh trước khi nói đạt.
 4. Lỗi → mỗi lỗi độc lập đề xuất 1 task F (`/gplay-game:fix bug "..."`). Đạt → gợi ý `/gplay-game:report`.
+
+Hỏi người dùng (chọn phương án, duyệt cổng, xác nhận) bằng tool **AskUserQuestion** (≤ 4 câu / lượt, 2–4 phương án, khuyến nghị đặt đầu + "(Recommended)"), không liệt kê câu hỏi thành chữ.

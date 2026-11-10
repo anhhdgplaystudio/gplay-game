@@ -14,3 +14,5 @@ argument-hint: "<T01> | bug \"<mô tả lỗi>\""
 - `$ARGUMENTS` bắt đầu bằng `bug`: tạo `.game/tasks/F<số>-<tên>.md` (kind code, scope hẹp nhất có thể, test tái hiện lỗi),
   `O log BUG "<mô tả>"`, rồi `O run F<số> --merge`.
 - Sau mỗi lần chạy: dán **Nơi thực hiện** + **Kết quả** của REPORT.md.
+
+Hỏi người dùng (chọn phương án, duyệt cổng, xác nhận) bằng tool **AskUserQuestion** (≤ 4 câu / lượt, 2–4 phương án, khuyến nghị đặt đầu + "(Recommended)"), không liệt kê câu hỏi thành chữ.

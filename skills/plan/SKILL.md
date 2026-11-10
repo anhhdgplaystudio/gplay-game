@@ -15,3 +15,5 @@ argument-hint: "[yêu cầu sửa plan]"
 4. Đưa người dùng phần chính + câu hỏi còn mở. Người dùng duyệt → `O log G2 "chốt plan v<n>"`, gợi ý `/gplay-game:split`.
 
 Plan là việc của orchestrator (chỉ ghi file trong .game/), không sửa code game ở bước này.
+
+Hỏi người dùng (chọn phương án, duyệt cổng, xác nhận) bằng tool **AskUserQuestion** (≤ 4 câu / lượt, 2–4 phương án, khuyến nghị đặt đầu + "(Recommended)"), không liệt kê câu hỏi thành chữ.

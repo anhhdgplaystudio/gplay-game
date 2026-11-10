@@ -20,3 +20,5 @@ argument-hint: "[ghi chú thêm]"
 
 Phiên này là orchestrator: không tự sửa code / asset game, mọi việc thực hiện qua `O run`.
 `$ARGUMENTS` là ghi chú của người dùng: ghi lại bằng `O log NOTE "..."`.
+
+Hỏi người dùng (chọn phương án, duyệt cổng, xác nhận) bằng tool **AskUserQuestion** (≤ 4 câu / lượt, 2–4 phương án, khuyến nghị đặt đầu + "(Recommended)"), không liệt kê câu hỏi thành chữ.

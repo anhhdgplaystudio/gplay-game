@@ -16,3 +16,5 @@ argument-hint: "[T01 T02 ...] (trống = mọi task chưa xong)"
 6. Cuối lượt: bảng tổng (đạt / trượt / chờ phụ thuộc / làm tay); task trượt → gợi ý `/gplay-game:fix <task>`; hết task → `/gplay-game:test`.
 
 Không tự sửa code thay worker. Task failed không gộp.
+
+Hỏi người dùng (chọn phương án, duyệt cổng, xác nhận) bằng tool **AskUserQuestion** (≤ 4 câu / lượt, 2–4 phương án, khuyến nghị đặt đầu + "(Recommended)"), không liệt kê câu hỏi thành chữ.

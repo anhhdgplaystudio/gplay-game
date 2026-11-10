@@ -21,3 +21,5 @@ Luật = `$ARGUMENTS` (trống thì hỏi).
 3. Trùng / mâu thuẫn luật có sẵn (skill `gplay-game` mục "Luật cứng", RULES.md, AGENTS.md) → báo người dùng, sửa luật cũ thay vì thêm dòng.
 4. Có `.game/` → `python "${CLAUDE_PLUGIN_ROOT}/scripts/orch.py" log RULE "<phạm vi>: <luật>"`.
 5. Báo: luật ghi ở file nào, có được guard chặn không (kết quả kiểm).
+
+Hỏi người dùng (chọn phương án, duyệt cổng, xác nhận) bằng tool **AskUserQuestion** (≤ 4 câu / lượt, 2–4 phương án, khuyến nghị đặt đầu + "(Recommended)"), không liệt kê câu hỏi thành chữ.

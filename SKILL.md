@@ -21,6 +21,7 @@ Người dùng gõ `/gplay-game:start` (dự án mới) hoặc `/gplay-game:cont
 intake → nghiên cứu ∥ đọc base → câu hỏi + đề xuất → plan → chia task → **mỗi task chạy bằng claude CLI** (`scripts/orch.py run`)
 (song song tối đa 3 phiên theo độ nặng, mỗi task 1 git worktree) → test đơn từng task → gộp → test tích hợp → sửa bug → báo cáo. Có cổng duyệt G0–G3, lịch sử `.game/HISTORY.md` + transcript từng lần chạy,
 báo cáo "nơi thực hiện + kết quả" sau mỗi task.
+Mọi câu hỏi cho người dùng (intake, câu hỏi G1, duyệt plan, xác nhận) dùng tool **AskUserQuestion**, không liệt kê thành chữ trong chat.
 
 ## Các giai đoạn
 

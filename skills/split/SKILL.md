@@ -17,3 +17,5 @@ argument-hint: "[phần plan cần chia]"
    - `model`: haiku chỉ cho việc máy móc weight 1, opus cho task khó weight 3, còn lại để trống (mặc định config).
 3. Ghi `.game/tasks/<id>-<tên>.md`; chưa có nhánh tích hợp → `O branch`; `O run <các task> --dry-run` để kiểm parse + lịch.
 4. Đưa người dùng bảng: id, tiêu đề, phụ thuộc, nặng, model, scope. Đồng ý → `O log SPLIT "<n> task"`, gợi ý `/gplay-game:run`.
+
+Hỏi người dùng (chọn phương án, duyệt cổng, xác nhận) bằng tool **AskUserQuestion** (≤ 4 câu / lượt, 2–4 phương án, khuyến nghị đặt đầu + "(Recommended)"), không liệt kê câu hỏi thành chữ.

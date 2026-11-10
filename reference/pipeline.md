@@ -40,7 +40,7 @@ Kiểm đủ: thiếu mục bắt buộc (cơ chế, tham khảo, base) → hỏ
 `O run R1 R2 --parallel` → đọc `.game/research/R1.md`, `R2.md`.
 
 **3. Câu hỏi + đề xuất.** Orchestrator tổng hợp vào `.game/questions.md`: câu hỏi cần người dùng quyết (mỗi câu 2–4 phương án,
-đánh dấu khuyến nghị), đề xuất của Claude, rủi ro. Hỏi người dùng (AskUserQuestion cho câu chọn được). Ghi câu trả lời vào file.
+đánh dấu khuyến nghị), đề xuất của Claude, rủi ro. Hỏi người dùng bằng AskUserQuestion (≤ 4 câu / lượt, nhiều lượt nếu cần; câu tự do dùng ô "Other"). Ghi câu trả lời vào file.
 `O log G1 "<tóm tắt quyết định>"` · `O phase plan`.
 
 **4. Plan.** `.game/plan.md` (mẫu `templates/plan.md`): mục tiêu bản đầu, ngoài phạm vi, kiến trúc, cơ chế, pipeline level, các mốc,

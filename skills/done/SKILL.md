@@ -12,3 +12,5 @@ argument-hint: "<T01> [\"tóm tắt đã làm\"]"
 2. Người dùng nói chưa xong / bỏ dở → `O done <id> --note "<tóm tắt>" --fail`. Còn lại → `O done <id> --note "<tóm tắt>" --merge`.
 3. Dán **Nơi thực hiện** + **Kết quả** + **Kiểm tra** của REPORT.md. Test trượt → task giữ worktree; gợi ý `/gplay-game:open <id>` làm tiếp
    hoặc `/gplay-game:fix <id>` cho claude CLI sửa.
+
+Hỏi người dùng (chọn phương án, duyệt cổng, xác nhận) bằng tool **AskUserQuestion** (≤ 4 câu / lượt, 2–4 phương án, khuyến nghị đặt đầu + "(Recommended)"), không liệt kê câu hỏi thành chữ.
