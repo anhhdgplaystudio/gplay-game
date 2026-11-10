@@ -23,11 +23,14 @@ Quy trình đầy đủ: `${CLAUDE_PLUGIN_ROOT}/reference/pipeline.md`. Luật c
 - Slug = `$ARGUMENTS` (từ đầu không phải link / đường dẫn), không có thì tự đặt theo tên repo / thư mục (chữ thường, gạch ngang). **Không hỏi**, hiện trên thẻ.
 
 ## 2. Xin tài liệu tham khảo (câu hỏi đầu tiên, duy nhất của lượt này)
-`$ARGUMENTS` đã có link / đường dẫn → bỏ qua bước này. Không thì hỏi bằng chữ (câu trả lời tự do, nhiều dòng) rồi **dừng chờ**:
-> Gửi mình tài liệu tham khảo cho game (bao nhiêu cũng được, mỗi dòng 1 cái): link store / YouTube / TikTok, file hoặc thư mục video gameplay,
-> ảnh, mockup UI, art, PSD, tài liệu thiết kế. Kèm 1–2 câu ý tưởng nếu có. Chưa có gì thì gõ "chưa có" + tên game tương tự.
-
-Nếu thấy file sẵn trong repo ở bước 1, nhắc tên chúng trong câu hỏi ("mình thấy `Buzzy Bus/Video/demo.mp4`, có phải tài liệu tham khảo không?").
+`$ARGUMENTS` đã có link / đường dẫn → bỏ qua bước này. Không thì **AskUserQuestion 1 câu** rồi dừng chờ:
+- question: "Gửi tài liệu tham khảo cho game: link store / YouTube / TikTok, file hoặc thư mục video, ảnh, mockup, art, PSD (dán vào ô Other, nhiều cái cách nhau bằng dấu phẩy hoặc xuống dòng, kèm 1–2 câu ý tưởng nếu có)."
+- header `Tham khảo`, multiSelect true nếu có nhiều file sẵn, phương án (2–4):
+  - mỗi thư mục / file tham khảo thấy sẵn trong repo ở bước 1 (vd `Buzzy Bus/Video/`), tối đa 2 cái, cái nhiều khả năng nhất + "(Recommended)";
+  - "Dán link / đường dẫn ở Other" (khi không thấy file sẵn thì đây là phương án đầu, có "(Recommended)");
+  - "Chỉ có ý tưởng": Claude hỏi tiếp 1 câu bằng chữ xin mô tả + tên game tương tự;
+  - "Chưa có gì, tự tìm theo tên game": tìm trên web theo slug / tên thư mục.
+Người dùng chọn phương án mà chưa đưa link (vd chọn file có sẵn) → dùng luôn, không hỏi lại. Bỏ qua / tắt hộp → hỏi lại câu này bằng chữ.
 
 ## 3. Tự xem tài liệu
 `O init --slug <slug>` (tạo `.game/`, task R1 / R2, `.claude/guard.json`). Rồi xem từng nguồn, ghi đường dẫn / URL vào `.game/intake.md` mục 2:
