@@ -1,27 +1,37 @@
-"""Điều phối pipeline làm game: mọi task chạy bằng claude CLI, mọi hoạt động ghi lịch sử để truy vết ngược.
+"""Sổ trạng thái + lịch sử của pipeline làm game (.game/), kèm tuỳ chọn chạy task bằng claude CLI.
+
+Mặc định phiên Claude chính tự làm từng mốc (xem reference/pipeline.md); phần "worker CLI" chỉ dùng khi người dùng
+muốn chạy song song / chạy qua đêm (reference/cli-workers.md).
 
 Lệnh (chạy ở gốc repo dự án):
   orch.py init [--slug ten-game] [--no-git] [--no-guard]
-                                                 tạo .game/ (intake, config, state, lịch sử, task R1/R2) + .claude/guard.json
-  orch.py phase <tên>                            chuyển giai đoạn (ghi lịch sử)
-  orch.py log <mã> "<nội dung>" [--task T01]     ghi 1 sự kiện tay (cổng duyệt, quyết định người dùng)
-  orch.py branch                                 tạo nhánh tích hợp game/<slug> từ nhánh hiện tại
-  orch.py run T01 [T02 ...] [--parallel [N]] [--merge] [--fix] [--dry-run]
-                                                 chạy task bằng claude CLI, test, ghi báo cáo.
-                                                 --parallel: song song theo độ nặng (mỗi task code 1 git worktree),
-                                                 test vẫn tuần tự từng task; --merge: tự gộp task đạt
-  orch.py merge T01 [T02 ...]                    gộp nhánh task đã đạt vào nhánh tích hợp
-  orch.py test [--cmd "<lệnh>"]                  test tích hợp trên nhánh hiện tại
-  orch.py status                                 bảng trạng thái task
+                                                 tạo .game/ (intake, config, state, lịch sử) + .claude/guard.json
+  orch.py phase <tên>                            chuyển giai đoạn: intake | research | plan | slice | build | report | done
+  orch.py log <mã> "<nội dung>" [--task T01]     ghi 1 sự kiện (cổng duyệt G0 G1 G2 GS G3, quyết định, NOTE, LEARN).
+                                                 nội dung "-" = đọc stdin (UTF-8); --file f = đọc từ file (giữ dấu tiếng Việt)
+  orch.py ms                                     bảng mốc (trạng thái, thời gian, ảnh bằng chứng)
+  orch.py ms M1 start "<tiêu đề>"                bắt đầu 1 mốc
+  orch.py ms M1 done [--note "..."] [--evidence a.png b.png] [--fail]
+                                                 chốt mốc: ghi file đã đổi từ lúc start, ảnh bằng chứng, sinh lại REPORT.md
+  orch.py status                                 giai đoạn, mốc, task, lần chạy dở
   orch.py report                                 sinh .game/REPORT.md
   orch.py history [--task T] [--file F] [--event E] [--since 2026-11-01] [-n 40]
-                                                 lọc lịch sử; --file: task / commit nào đã sửa file đó
   orch.py config [khoá [giá trị]]                xem / đổi .game/config.json (giá trị dạng JSON hoặc chuỗi)
-  orch.py open T01 [--here]                      làm tay 1 task: dựng nhánh / worktree, in lệnh mở claude (tiếp phiên cũ nếu có)
-  orch.py done T01 [--note "..."] [--fail]       chốt task làm tay: commit, test, REPORT.md, lịch sử như task tự động
+  orch.py test [--cmd "<lệnh>"]                  chạy lệnh test chung (config tests) + lệnh thêm, ghi log
 
-Mỗi lần chạy task: .game/runs/<T>/<thời điểm>-a<lần>/ gồm prompt.md, transcript.jsonl (mọi lượt gọi tool),
-result.json, test.log, diff.txt, REPORT.md. Lịch sử: .game/history.jsonl (máy) + .game/HISTORY.md (người).
+Worker CLI (tuỳ chọn):
+  orch.py branch                                 tạo nhánh tích hợp game/<slug> từ nhánh hiện tại
+  orch.py run T01 [T02 ...] [--parallel [N]] [--merge] [--fix] [--dry-run]
+                                                 chạy task bằng claude CLI → test → verify (orch chạy, vd Unity có GPU) → báo cáo.
+                                                 Kết quả: passed | review (chờ orchestrator xem ảnh rồi `accept`) | failed
+  orch.py accept T01 [--note "..."] [--evidence ...] [--merge]
+                                                 nghiệm thu task đang `review` sau khi đã xem bằng chứng
+  orch.py merge T01 [T02 ...]                    gộp nhánh task đã đạt vào nhánh tích hợp
+  orch.py open T01 [--here] / done T01 [--note "..."] [--fail]
+                                                 làm tay 1 task trong phiên tương tác riêng
+
+Mỗi lần chạy task: .game/runs/<T>/<thời điểm>-a<lần>/ gồm prompt.md, transcript.jsonl, result.json, test.log,
+verify.log, diff.txt, REPORT.md. Lịch sử: .game/history.jsonl (máy) + .game/HISTORY.md (người).
 """
 import argparse
 import datetime as dt
@@ -34,6 +44,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 import uuid
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 
@@ -70,9 +81,18 @@ WORKER_RULES = """Bạn là WORKER trong pipeline làm game do orchestrator đi�
 - KHÔNG git commit / checkout / merge / reset / stash (orchestrator làm). KHÔNG sửa thư mục .game/ trừ file output được chỉ định.
 - Tuân thủ AGENTS.md / CLAUDE.md / .claude/game-profile.md của repo. Không sửa tay YAML Unity, không xoá .meta, không đọc file bí mật.
 - Không hỏi lại người dùng (không ai trả lời). Thiếu thông tin: chọn phương án an toàn nhất, ghi vào risks.
-- Thư mục làm việc đã là gốc repo: chạy lệnh trực tiếp, KHÔNG "cd ... &&" (quyền chỉ cho lệnh bắt đầu đúng tên công cụ).
+- Thư mục làm việc đã là gốc repo: mỗi lần gọi shell chỉ 1 lệnh đơn bắt đầu bằng tên công cụ (python, dotnet, ...).
+  KHÔNG "cd ... &&", không nối lệnh bằng ; | && , không vòng for / heredoc: quyền xét từng lệnh con nên sẽ bị từ chối.
+  Cần xử lý nhiều bước: viết file script .py (thư mục tạm) rồi chạy `python <file>`. Đọc / tìm file: dùng Read, Glob, Grep.
+- Lệnh bị từ chối quyền: KHÔNG tìm cách gọi vòng (script bọc, wrapper, đổi shell). Ghi nguyên lệnh vào not_done để orchestrator chạy.
+- Việc cần Unity có GPU (chụp ảnh, tự chơi có hình) do orchestrator chạy sau (mục VERIFY của task): chuẩn bị sẵn lệnh, không tự chạy.
 - Chạy các lệnh kiểm tra được giao trước khi báo cáo. Báo cáo trung thực: lỗi còn thì result = partial/failed.
+  Mọi thứ trong phạm vi đã xong, chỉ còn phần kiểm bằng mắt của orchestrator → result = done, ghi phần đó vào not_done.
 - Kết thúc bằng báo cáo theo schema (tiếng Việt)."""
+
+PS_READ = ["PowerShell(Get-ChildItem:*)", "PowerShell(Get-Content:*)", "PowerShell(Select-String:*)", "PowerShell(Test-Path:*)",
+           "PowerShell(Select-Object:*)", "PowerShell(Where-Object:*)", "PowerShell(ForEach-Object:*)",
+           "PowerShell(Sort-Object:*)", "PowerShell(Measure-Object:*)", "PowerShell(Format-Table:*)"]
 
 DEFAULT_CONFIG = {
     "slug": "",
@@ -82,7 +102,8 @@ DEFAULT_CONFIG = {
     "claude": "",
     "model": "sonnet",
     "effort": "",
-    "budget_usd": 3.0,
+    "budget_usd": 0,            # trần USD mỗi lần chạy (0 = không đặt; gói tháng thì USD chỉ là số quy đổi)
+    "persist_sessions": True,   # False: phiên worker không lưu (không hiện trong danh sách phiên, nhưng --fix không tiếp phiên cũ được)
     "timeout_s": 3600,
     "max_fix": 2,
     "fix_model_up": {"haiku": "sonnet"},  # lần sửa (--fix) tự lên model mạnh hơn
@@ -92,13 +113,19 @@ DEFAULT_CONFIG = {
     "commit_ignore": ["*.pyc", "*/__pycache__/*", "__pycache__/*", ".DS_Store", "Thumbs.db"],  # file rác không commit / không tính scope
     "worktree_copy": ["*.csproj", "*.sln"],
     "worktree_links": ["Library", "Temp/Bin"],
+    # Windows: shell chính của worker là PowerShell → phải có luật PowerShell(...) song song với Bash(...)
     "allowed_tools": ["Read", "Edit", "Write", "Glob", "Grep", "TodoWrite",
-                      "Bash(dotnet build:*)", "Bash(python:*)", "Bash(git status:*)", "Bash(git diff:*)",
-                      "Bash(ls:*)", "Bash(node:*)"],
+                      "Bash(dotnet:*)", "Bash(python:*)", "Bash(node:*)", "Bash(ls:*)",
+                      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)",
+                      "PowerShell(dotnet:*)", "PowerShell(python:*)", "PowerShell(node:*)",
+                      "PowerShell(git status:*)", "PowerShell(git diff:*)", "PowerShell(git log:*)", *PS_READ],
     "research_tools": ["Read", "Glob", "Grep", "Write", "WebSearch", "WebFetch", "TodoWrite",
-                       "Bash(git log:*)", "Bash(ls:*)"],
-    "review_tools": ["Read", "Glob", "Grep", "Write", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)"],
+                       "Bash(python:*)", "Bash(git log:*)", "Bash(ls:*)",
+                       "PowerShell(python:*)", "PowerShell(git log:*)", *PS_READ],
+    "review_tools": ["Read", "Glob", "Grep", "Write", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)",
+                     "PowerShell(git diff:*)", "PowerShell(git log:*)", "PowerShell(git show:*)", *PS_READ],
     "tests": [],
+    "track_dirs": ["Assets", "Packages", "ProjectSettings", "Tools"],  # không git: quét mtime ở đây để biết file đã đổi
 }
 
 INTAKE = """# Intake — điền rồi báo Claude
@@ -114,7 +141,7 @@ INTAKE = """# Intake — điền rồi báo Claude
 - Ảnh (đường dẫn file hoặc thư mục):
 - Video gameplay (link / file):
 - Art mẫu / mockup UI có sẵn:
-- Frame video đã trích (đường dẫn, cho R1):
+- Video gameplay đã tải / frame đã trích (đường dẫn, cho bước research):
 - Nhận xét từ tài liệu (cơ chế, vòng chơi, UI, meta thấy được):
 
 ## 3. Phạm vi bản đầu
@@ -203,10 +230,13 @@ def need_init():
         raise SystemExit("Chưa có .game/. Chạy: orch.py init")
 
 
-def claude_exe(c):
-    """Ưu tiên claude.exe native: gọi thẳng, không qua cmd.exe (giữ nguyên dấu nháy trong JSON)."""
-    if c.get("claude"):
-        return c["claude"]
+def _ver_key(p):
+    m = re.search(r"claude-code-(\d+(?:\.\d+)*)", p.replace("\\", "/"))
+    return tuple(int(x) for x in m.group(1).split(".")) if m else ()
+
+
+def find_claude():
+    """Tìm claude native: PATH → npm global → bản mới nhất trong extension của IDE (VS Code, Cursor, Antigravity...)."""
     for name in ("claude.exe", "claude"):
         p = shutil.which(name)
         if p and not p.lower().endswith((".cmd", ".ps1")):
@@ -214,7 +244,70 @@ def claude_exe(c):
     npm = os.path.join(os.environ.get("APPDATA", ""), "npm", "node_modules", "@anthropic-ai", "claude-code", "bin", "claude.exe")
     if os.path.isfile(npm):
         return npm
-    return shutil.which("claude") or "claude"
+    home, hits = os.path.expanduser("~"), []
+    for ide in (".vscode", ".vscode-insiders", ".cursor", ".windsurf", ".antigravity-ide", ".antigravity"):
+        hits += glob.glob(os.path.join(home, ide, "extensions", "anthropic.claude-code-*", "resources", "native-binary", "claude*"))
+    hits = [h for h in hits if os.path.isfile(h)]
+    if hits:
+        return max(hits, key=_ver_key).replace("\\", "/")  # extension tự cập nhật → luôn lấy bản mới nhất
+    return shutil.which("claude")
+
+
+def claude_exe(c):
+    """Đường dẫn trong config còn dùng được thì dùng; mất (extension tự cập nhật đổi thư mục) thì tự dò lại."""
+    p = c.get("claude")
+    if p and (os.path.isfile(p) or shutil.which(p)):
+        return p
+    found = find_claude()
+    if p and found:
+        print(f"Cảnh báo: config claude = {p} không còn; dùng {found}")
+    return found or p or "claude"
+
+
+def pid_alive(pid):
+    if not pid:
+        return False
+    if os.name == "nt":
+        return f'"{pid}"' in sh(["tasklist", "/FI", f"PID eq {pid}", "/NH", "/FO", "CSV"]).stdout
+    try:
+        os.kill(int(pid), 0)
+        return True
+    except OSError:
+        return False
+
+
+SKIP_DIRS = {"Library", "Temp", "Logs", "obj", "bin", ".git", ".vs", "node_modules", "__pycache__"}
+
+
+def scan_changed(since, c, limit=500):
+    """Không git: file trong track_dirs có mtime >= since (giây epoch). Bỏ .meta và file rác."""
+    junk = c.get("commit_ignore") or []
+    out = []
+    for d in c.get("track_dirs") or []:
+        for root, dirs, files in os.walk(d):
+            dirs[:] = [x for x in dirs if x not in SKIP_DIRS]
+            for f in files:
+                if f.endswith(".meta") or any(fnmatch.fnmatch(f, g) for g in junk):
+                    continue
+                p = os.path.join(root, f)
+                try:
+                    if os.path.getmtime(p) >= since:
+                        out.append(p.replace("\\", "/"))
+                except OSError:
+                    pass
+                if len(out) >= limit:
+                    return sorted(out)
+    return sorted(out)
+
+
+def expand_evidence(patterns, since=0):
+    """Glob ảnh / file bằng chứng (đường dẫn đầy đủ), chỉ lấy file mới hơn `since`."""
+    out = []
+    for pat in patterns or []:
+        for f in sorted(glob.glob(pat, recursive=True)):
+            if os.path.isfile(f) and os.path.getmtime(f) >= since:
+                out.append(os.path.abspath(f).replace("\\", "/"))
+    return out[:60]
 
 
 # ---------------------------------------------------------------- task
@@ -234,8 +327,9 @@ def parse_task(tid):
             k, v = line.split(":", 1)
             k = k.strip()
             v = re.split(r"\s+#\s", " " + v.strip() + " ", maxsplit=1)[0].strip()  # bỏ chú thích cuối dòng " # ..."
-            if k == "test":
-                meta.setdefault("test", []).append(v)
+            if k in ("test", "verify", "evidence"):  # nhiều dòng được
+                if v:
+                    meta.setdefault(k, []).append(v)
             else:
                 meta[k] = v
     meta.setdefault("id", tid)
@@ -300,7 +394,7 @@ def task_weight(t, c):
     score = 1
     if (t.get("model") or c["model"]) == "opus" or (t.get("effort") or c["effort"]) in ("high", "xhigh", "max"):
         score += 1
-    if float(t.get("budget") or c["budget_usd"]) >= 5:
+    if float(t.get("budget") or c["budget_usd"] or 0) >= 5:
         score += 1
     if count_scope_files(t) > 40:  # phạm vi rộng → nhiều file phải đọc / sửa
         score += 1
@@ -399,6 +493,11 @@ def build_prompt(t, c, branch, fix_log=None, attempt=1, repo=None, isolated=Fals
     if tests:
         lines.append("- Lệnh kiểm tra phải chạy và đạt trước khi báo cáo:")
         lines += [f"  - `{x}`" for x in tests]
+    if t.get("verify"):
+        lines.append("- VERIFY (orchestrator sẽ tự chạy sau khi bạn xong, vd Unity có GPU; bạn KHÔNG chạy, chỉ bảo đảm lệnh chạy được):")
+        lines += [f"  - `{x}`" for x in t["verify"]]
+    if t.get("evidence"):
+        lines.append("- Bằng chứng orchestrator sẽ xem (ảnh sinh ra từ VERIFY): " + ", ".join(t["evidence"]))
     if t["depends"]:
         lines.append("- Task trước đã xong: " + ", ".join(t["depends"]) + f" (báo cáo ở {gdir}/runs/<task>/).")
     lines += ["", "## Mô tả", t["body"]]
@@ -411,14 +510,18 @@ def build_prompt(t, c, branch, fix_log=None, attempt=1, repo=None, isolated=Fals
     return "\n".join(lines)
 
 
-def run_tests(cmds, log_path, cwd=None):
+def run_tests(cmds, log_path, cwd=None, timeout=None):
     results, out = [], []
     env = {**os.environ, "PYTHONUTF8": "1"}  # Windows: python mặc định đọc file cp1252, test có tiếng Việt sẽ lỗi
     for cmd in cmds:
-        r = sh(cmd, cwd=cwd, env=env)
-        results.append({"cmd": cmd, "exit": r.returncode})
-        out.append(f"$ {cmd}\n(cwd {cwd or os.getcwd()}, exit {r.returncode})\n{r.stdout[-8000:]}\n{r.stderr[-4000:]}\n")
-    wr(log_path, "\n".join(out) or "(không có lệnh test)\n")
+        try:
+            r = sh(cmd, cwd=cwd, env=env, timeout=timeout)
+            code, so, se = r.returncode, r.stdout, r.stderr
+        except subprocess.TimeoutExpired:
+            code, so, se = 124, "", f"Quá thời gian {timeout} s"
+        results.append({"cmd": cmd, "exit": code})
+        out.append(f"$ {cmd}\n(cwd {cwd or os.getcwd()}, exit {code})\n{so[-8000:]}\n{se[-4000:]}\n")
+    wr(log_path, "\n".join(out) or "(không có lệnh)\n")
     return results
 
 
@@ -441,14 +544,22 @@ def render_report(t, info):
     L += ["", "## Kiểm tra"]
     L += [f"- Worker chạy `{x.get('cmd')}`: {'đạt' if x.get('ok') else 'LỖI'} {x.get('note', '')}" for x in w.get("checks_run", [])]
     L += [f"- Orchestrator chạy `{x['cmd']}`: {'đạt' if x['exit'] == 0 else 'LỖI (exit %d)' % x['exit']}" for x in info["tests"]]
-    if not w.get("checks_run") and not info["tests"]:
+    L += [f"- VERIFY `{x['cmd']}`: {'đạt' if x['exit'] == 0 else 'LỖI (exit %d)' % x['exit']} (log: `{info['run_dir']}/verify.log`)"
+          for x in info.get("verify", [])]
+    if not w.get("checks_run") and not info["tests"] and not info.get("verify"):
         L.append("- (không có lệnh kiểm tra)")
+    if info.get("evidence"):
+        L += ["", "## Ảnh bằng chứng (orchestrator phải XEM trước khi nghiệm thu)"] + [f"- `{p}`" for p in info["evidence"]]
+    if info["status"] == "review":
+        L += ["", "## Chờ nghiệm thu",
+              f"- Lệnh kiểm đã đạt; orchestrator xem ảnh / mục \"Chưa làm\" rồi: `orch.py accept {t['id']} --note \"...\"` hoặc `orch.py run {t['id']} --fix`."]
     if info.get("denials"):
         L += ["", "## Bị từ chối quyền"] + [f"- {d}" for d in info["denials"]]
     for title, key in (("Chưa làm", "not_done"), ("Rủi ro", "risks"), ("Ghi chú cho task sau", "notes_for_next")):
         if w.get(key):
             L += ["", f"## {title}"] + [f"- {x}" for x in w[key]]
-    L += ["", "## Chi phí", f"- ${info.get('cost', 0):.4f} · {info.get('turns', 0)} lượt · {info.get('duration_s', 0)} s"]
+    L += ["", "## Chi phí (quy đổi USD của lần chạy này; gói tháng thì chỉ để so sánh)",
+          f"- ${info.get('cost', 0):.4f} · {info.get('turns', 0)} lượt · {info.get('duration_s', 0)} s"]
     return "\n".join(L) + "\n"
 
 
@@ -473,6 +584,22 @@ def prepare(tid, fix=False, dry=False, isolate=False, manual=False):
     dep = deps_state(t, c)
     if dep != "ok":
         raise SystemExit(dep if dep != "wait" else f"{tid}: phụ thuộc chưa xong")
+    if not dry and not manual:
+        exe = claude_exe(c)
+        if not (os.path.isfile(exe) or shutil.which(exe)):  # kiểm trước: không tính 1 lần chạy cho lỗi môi trường
+            raise SystemExit(f"Không tìm thấy claude CLI ({exe}). Đặt: orch.py config claude \"<đường dẫn claude.exe>\"")
+    stale = ts.get("running")
+    if stale and not dry:
+        if pid_alive(stale.get("pid")):
+            raise SystemExit(f"{tid} đang chạy (pid {stale.get('pid')}, từ {stale.get('started')}): chờ xong hoặc dừng tiến trình đó")
+        # lần chạy trước bị ngắt giữa chừng (tắt máy, dừng phiên): ghi lại để lịch sử không hở
+        history("task_end", f"{tid} → interrupted", task=tid, attempt=stale.get("attempt"), run_dir=stale.get("run_dir"))
+        ts["attempts"] = max(ts.get("attempts", 0), stale.get("attempt", 0))
+        ts.setdefault("runs", []).append(stale.get("run_dir"))
+        ts["status"] = "interrupted"
+        ts.pop("running", None)
+        s["tasks"][tid] = ts
+        save_state(s)
     if fix and not manual and ts["attempts"] > c["max_fix"]:  # làm tay = lối thoát khi sửa tự động hết lượt
         raise SystemExit(f"{tid} đã sửa {ts['attempts'] - 1} lần (tối đa {c['max_fix']}): báo người dùng")
     attempt = ts["attempts"] + 1
@@ -513,12 +640,18 @@ def prepare(tid, fix=False, dry=False, isolate=False, manual=False):
         model = up or ts["model"]
         if up:
             history("model_up", f"{tid}: lần sửa lên {up} (lần trước {ts['model']} chưa đạt)", task=tid)
-    resume = fix and ts.get("session_id")
+    persist = c.get("persist_sessions", True)
+    resume = fix and persist and ts.get("session_id") and session_file(ts["session_id"])
     sid = ts["session_id"] if resume else str(uuid.uuid4())
     cmd = [claude_exe(c), "-p", "--output-format", "stream-json", "--verbose",
            "--permission-mode", "acceptEdits", "--allowedTools", " ".join(tools),
            "--append-system-prompt", WORKER_RULES, "--json-schema", json.dumps(REPORT_SCHEMA, ensure_ascii=False),
-           "--max-budget-usd", str(t.get("budget") or c["budget_usd"]), "-n", f"game-{tid}-a{attempt}"]
+           "-n", f"game-{tid}-a{attempt}"]
+    budget = float(t.get("budget") or c["budget_usd"] or 0)
+    if budget > 0:
+        cmd += ["--max-budget-usd", str(budget)]
+    if not persist:
+        cmd += ["--no-session-persistence"]
     cmd += ["--resume", sid] if resume else ["--session-id", sid]
     if isolated:
         cmd += ["--add-dir", os.path.abspath(G)]  # .game/ (gitignore) chỉ có ở repo chính
@@ -537,6 +670,12 @@ def prepare(tid, fix=False, dry=False, isolate=False, manual=False):
     if dry:
         print(f"[dry-run] {tid} (nặng {weight}{', worktree ' + cwd if isolated else ''}): {' '.join(cmd[:6])} ... → {run_dir}")
         return None
+    if not manual:
+        with LOCK:
+            s2 = state()
+            s2["tasks"].setdefault(tid, {"status": "todo", "attempts": 0, "runs": []})["running"] = {
+                "pid": os.getpid(), "attempt": attempt, "run_dir": run_dir, "started": now()}
+            save_state(s2)
     return {"t": t, "c": c, "tid": tid, "attempt": attempt, "use_git": use_git, "branch": branch, "cwd": cwd,
             "isolated": isolated, "run_dir": run_dir, "prompt": prompt, "cmd": cmd, "sid": sid, "weight": weight, "model": model}
 
@@ -546,6 +685,7 @@ def execute(ctx):
     c, t, cwd, run_dir = ctx["c"], ctx["t"], ctx["cwd"], ctx["run_dir"]
     before = set(changed_files(cwd=cwd)) if c["git"] else set()  # file bẩn từ trước không tính cho task này
     started = dt.datetime.now()
+    t0 = time.time() - 1
     result_line, err = None, ""
     with open(f"{run_dir}/transcript.jsonl", "w", encoding="utf-8") as tf:
         try:
@@ -575,7 +715,8 @@ def execute(ctx):
     wr(f"{run_dir}/result.json", res)
     junk = c.get("commit_ignore") or []
     files = [f for f in changed_files(cwd=cwd) if f not in before
-             and not any(fnmatch.fnmatch(f, g) or fnmatch.fnmatch(os.path.basename(f), g) for g in junk)] if c["git"] else []
+             and not any(fnmatch.fnmatch(f, g) or fnmatch.fnmatch(os.path.basename(f), g) for g in junk)] if c["git"] \
+        else scan_changed(t0, c)  # không git: theo mtime (chạy tuần tự nên quy được cho task này)
     if c["git"]:
         wr(f"{run_dir}/diff.txt", sh(["git", "diff", "--stat"], cwd=cwd).stdout + "\n" + sh(["git", "diff"], cwd=cwd).stdout[:200000])
     commit = None
@@ -584,7 +725,7 @@ def execute(ctx):
             git("add", "--", *files, cwd=cwd)
             git("commit", "-q", "-m", f"[game] {ctx['tid']}: {t['title']} (lần {ctx['attempt']})\n\nRun: {run_dir}\nSession: {ctx['sid']}", cwd=cwd)
             commit = git("rev-parse", "--short", "HEAD", cwd=cwd)
-    ctx.update(res=res, err=err, files=files, commit=commit,
+    ctx.update(res=res, err=err, files=files, commit=commit, t0=t0,
                duration_s=int((dt.datetime.now() - started).total_seconds()))
     return ctx
 
@@ -594,14 +735,34 @@ def finalize(ctx):
     c, t, res, run_dir = ctx["c"], ctx["t"], ctx["res"], ctx["run_dir"]
     worker = res.get("structured_output") or {}
     oos = [f for f in ctx["files"] if not in_scope(f, t)]
-    tests = run_tests(t.get("test", []) + (c["tests"] if t["kind"] == "code" else []), f"{run_dir}/test.log", cwd=ctx["cwd"])
-    ok = (worker.get("result") == "done" and not res.get("is_error") and all(x["exit"] == 0 for x in tests)
-          and not oos and (not t["output"] or os.path.exists(t["output"])))
-    status = "passed" if ok else "failed"
+    tests = run_tests(t.get("test", []) + (c["tests"] if t["kind"] == "code" else []), f"{run_dir}/test.log", cwd=ctx["cwd"],
+                      timeout=c["timeout_s"])
+    tests_ok = all(x["exit"] == 0 for x in tests)
+    # VERIFY: lệnh worker không có quyền chạy (Unity có GPU, tự chơi chụp ảnh) → orch chạy, chỉ khi test đã đạt
+    verify = run_tests(t.get("verify", []), f"{run_dir}/verify.log", cwd=ctx["cwd"], timeout=c["timeout_s"]) \
+        if t.get("verify") and tests_ok and not ctx.get("manual_done") else []
+    evidence = expand_evidence(t.get("evidence"), ctx.get("t0", 0)) + list(ctx.get("evidence") or [])
+    checks_ok = (not res.get("is_error") and tests_ok and all(x["exit"] == 0 for x in verify)
+                 and not (oos and c["git"])  # không git: file ngoài phạm vi chỉ cảnh báo (Unity tự ghi nhiều file phụ)
+                 and (not t["output"] or os.path.exists(t["output"])))
+    wres = worker.get("result")
+    # passed: worker xong + lệnh kiểm đạt + không có gì phải xem bằng mắt.
+    # review: lệnh kiểm đạt nhưng còn việc của orchestrator (worker báo partial, hoặc task có ảnh bằng chứng phải xem).
+    if checks_ok and wres == "done" and not (t.get("evidence") and not ctx.get("manual_done")):
+        status = "passed"
+    elif checks_ok and wres in ("done", "partial"):
+        status = "review"
+    else:
+        status = "failed"
+    tid = ctx["tid"]
+    sid_now = res.get("session_id", ctx["sid"])
+    prev = state()["tasks"].get(tid, {})
+    cum = res.get("total_cost_usd", 0) or 0  # claude báo luỹ kế theo phiên: lần --fix tiếp phiên cũ chỉ tính phần tăng thêm
+    cost = max(0.0, cum - prev.get("session_cum", 0)) if prev.get("session_id") == sid_now else cum
     info = {"attempt": ctx["attempt"], "status": status, "branch": ctx["branch"], "commit": ctx["commit"],
             "run_dir": run_dir, "cwd": ctx["cwd"], "isolated": ctx["isolated"], "weight": ctx["weight"],
-            "session_id": res.get("session_id", ctx["sid"]), "files": ctx["files"], "out_of_scope": oos, "worker": worker,
-            "tests": tests, "cost": res.get("total_cost_usd", 0), "turns": res.get("num_turns", 0),
+            "session_id": sid_now, "files": ctx["files"], "out_of_scope": oos, "worker": worker,
+            "tests": tests, "verify": verify, "evidence": evidence, "cost": cost, "turns": res.get("num_turns", 0),
             "duration_s": ctx["duration_s"], "ended": now(),
             "denials": [f"{d.get('tool_name')}: {json.dumps(d.get('tool_input', {}), ensure_ascii=False)[:200]}"
                         for d in res.get("permission_denials", [])],
@@ -610,19 +771,22 @@ def finalize(ctx):
     wr(f"{run_dir}/REPORT.md", report)
     if ctx["use_git"] and not ctx["isolated"]:
         git("checkout", c["integration_branch"])
-    tid = ctx["tid"]
     with LOCK:
         s = state()
         ts = s["tasks"].setdefault(tid, {"status": "todo", "attempts": 0, "runs": []})
         ts.update({"status": status, "attempts": ctx["attempt"], "session_id": info["session_id"], "branch": ctx["branch"],
                    "commit": ctx["commit"], "title": t["title"], "kind": t["kind"], "weight": ctx["weight"],
                    "model": ctx.get("model"), "worktree": ctx["cwd"] if ctx["isolated"] else None,
-                   "cost": round(ts.get("cost", 0) + info["cost"], 4)})
+                   "cost": round(ts.get("cost", 0) + info["cost"], 4), "evidence": evidence})
+        if not ctx.get("manual_done"):
+            ts["session_cum"] = cum
+        ts.pop("running", None)
         ts["runs"].append(run_dir)
         save_state(s)
     history("task_end", f"{tid} → {status}", task=tid, attempt=ctx["attempt"], result=worker.get("result"),
             branch=ctx["branch"], commit=ctx["commit"], files=len(ctx["files"]), out_of_scope=oos,
-            tests=[f"{x['exit']}" for x in tests], cost=round(info["cost"], 4), report=f"{run_dir}/REPORT.md")
+            tests=[f"{x['exit']}" for x in tests], verify=[f"{x['exit']}" for x in verify], evidence=evidence[:12],
+            cost=round(info["cost"], 4), report=f"{run_dir}/REPORT.md")
     print(report)
     return status
 
@@ -768,13 +932,7 @@ def cmd_init(a):
     if not os.path.exists(f"{G}/HISTORY.md"):
         wr(f"{G}/HISTORY.md", f"# Lịch sử pipeline — {c['slug']}\n\n")
     if not os.path.exists(f"{G}/state.json"):
-        save_state({"phase": "intake", "tasks": {}})
-    # task nghiên cứu R1 / R2 dựng sẵn từ mẫu (điền đường dẫn plugin)
-    plugin = SKILL_DIR.replace("\\", "/")
-    for src in glob.glob(os.path.join(SKILL_DIR, "templates", "tasks", "R*.md")):
-        dst = f"{G}/tasks/{os.path.basename(src)}"
-        if not os.path.exists(dst):
-            wr(dst, (rd(src, "") or "").replace("<PLUGIN>", plugin))
+        save_state({"phase": "intake", "tasks": {}, "milestones": {}})
     guard = None
     if not a.no_guard and not os.path.exists(".claude/guard.json"):
         guard = ".claude/guard.json"
@@ -783,6 +941,10 @@ def cmd_init(a):
             integration=c["integration_branch"], guard=guard)
     print(f"Đã tạo {G}/. Điền {G}/intake.md. Cấu hình: {G}/config.json"
           + (f". Bật guard: {guard}" if guard else ""))
+    if c["tests"]:
+        print(f"Lệnh test chung: {c['tests'][0]} (dự án dùng asmdef / lệnh compile riêng thì đổi: orch.py config tests '[\"<lệnh>\"]')")
+    if not has_git:
+        print("Không có git: không hoàn tác được, không chạy song song được. Nên hỏi người dùng `git init` cục bộ trước khi sửa code.")
 
 
 def cmd_phase(a):
@@ -796,8 +958,99 @@ def cmd_phase(a):
 
 def cmd_log(a):
     need_init()
-    history(a.code, a.message, task=a.task)
+    msg = a.message
+    if a.file:
+        msg = (rd(a.file, "") or "").strip()
+    elif msg == "-":
+        msg = sys.stdin.buffer.read().decode("utf-8", errors="replace").strip()
+    if not msg:
+        raise SystemExit("Thiếu nội dung (đối số, \"-\" để đọc stdin, hoặc --file)")
+    history(a.code, " ".join(msg.split()), task=a.task)
     print("Đã ghi.")
+
+
+# ---------------------------------------------------------------- mốc (phiên chính tự làm, orch chỉ ghi sổ)
+
+def fmt_dur(sec):
+    sec = int(sec)
+    return f"{sec // 3600}h{sec % 3600 // 60:02d}" if sec >= 3600 else f"{sec // 60}m"
+
+
+def ms_rows(s):
+    rows = []
+    for mid, m in sorted((s.get("milestones") or {}).items()):
+        end = m.get("ended") or now()
+        dur = (dt.datetime.fromisoformat(end) - dt.datetime.fromisoformat(m["started"])).total_seconds() if m.get("started") else 0
+        rows.append((mid, m.get("status", "todo"), fmt_dur(dur) if m.get("started") else "-", len(m.get("files") or []),
+                     len(m.get("evidence") or []), m.get("title", "")))
+    return rows
+
+
+def cmd_ms(a):
+    need_init()
+    c, s = cfg(), state()
+    ms = s.setdefault("milestones", {})
+    if not a.id:
+        print(f"{'Mốc':<5} {'Trạng thái':<10} {'Thời gian':<10} {'File':<5} {'Ảnh':<4} Tiêu đề")
+        for r in ms_rows(s):
+            print(f"{r[0]:<5} {r[1]:<10} {r[2]:<10} {r[3]:<5} {r[4]:<4} {r[5]}")
+        return
+    m = ms.setdefault(a.id, {"status": "todo"})
+    if a.action == "start":
+        doing = [k for k, v in ms.items() if v.get("status") == "doing" and k != a.id]
+        if doing:
+            print(f"Cảnh báo: mốc {', '.join(doing)} còn đang 'doing'")
+        m.update({"status": "doing", "started": now(), "ended": None, "title": a.title or m.get("title") or a.id})
+        save_state(s)
+        history("ms_start", f"{a.id} {m['title']}", milestone=a.id)
+        print(f"Bắt đầu {a.id}: {m['title']}")
+    elif a.action == "done":
+        if not m.get("started"):
+            raise SystemExit(f"{a.id} chưa start")
+        since = dt.datetime.fromisoformat(m["started"]).timestamp()
+        if c["git"]:
+            files = changed_files()
+        else:
+            files = scan_changed(since, c)
+        ev = [os.path.abspath(p).replace("\\", "/") for p in expand_evidence(a.evidence or [])]
+        missing = [p for p in (a.evidence or []) if not glob.glob(p, recursive=True)]
+        if missing:
+            print("Cảnh báo: không thấy bằng chứng: " + ", ".join(missing))
+        m.update({"status": "failed" if a.fail else "done", "ended": now(), "note": a.note or m.get("note", ""),
+                  "files": files, "evidence": (m.get("evidence") or []) + [p for p in ev if p not in (m.get("evidence") or [])]})
+        save_state(s)
+        wr(f"{G}/milestones/{a.id}-files.txt", "\n".join(files) + "\n")
+        history("ms_done", f"{a.id} → {m['status']}: {m['note']}", milestone=a.id, files=len(files), evidence=m["evidence"][:12])
+        write_report(quiet=True)
+        print(f"{a.id} → {m['status']} · {len(files)} file đổi ({G}/milestones/{a.id}-files.txt) · {len(m['evidence'])} ảnh bằng chứng")
+        for p in m["evidence"]:
+            print(f"  {p}")
+    else:
+        raise SystemExit("Dùng: orch.py ms <id> start \"<tiêu đề>\" | orch.py ms <id> done [--note] [--evidence ...] [--fail]")
+
+
+def cmd_accept(a):
+    """Nghiệm thu task đang `review`: orchestrator đã chạy / xem bằng chứng."""
+    need_init()
+    s = state()
+    tid = a.task
+    ts = s["tasks"].get(tid)
+    if not ts or ts.get("status") not in ("review", "failed", "interrupted"):
+        raise SystemExit(f"{tid} đang '{(ts or {}).get('status', 'todo')}': chỉ nghiệm thu task review (failed / interrupted cần --force)")
+    if ts["status"] != "review" and not a.force:
+        raise SystemExit(f"{tid} đang '{ts['status']}': thêm --force nếu đã tự kiểm đủ (ghi rõ trong --note)")
+    ev = expand_evidence(a.evidence or [])
+    ts["status"] = "passed"
+    ts["evidence"] = (ts.get("evidence") or []) + [p for p in ev if p not in (ts.get("evidence") or [])]
+    save_state(s)
+    last = ts["runs"][-1] if ts.get("runs") else None
+    if last and os.path.exists(f"{last}/REPORT.md"):
+        with open(f"{last}/REPORT.md", "a", encoding="utf-8") as f:
+            f.write(f"\n## Orchestrator nghiệm thu ({now()})\n- {a.note or '(không ghi chú)'}\n" + "".join(f"- `{p}`\n" for p in ev))
+    history("accept", f"{tid} → passed: {a.note}", task=tid, evidence=ev[:12])
+    print(f"{tid} → passed")
+    if a.merge and cfg()["git"]:
+        merge_one(tid)
 
 
 def cmd_branch(a):
@@ -855,38 +1108,73 @@ def cmd_test(a):
 def cmd_status(a):
     need_init()
     s = state()
-    print(f"Giai đoạn: {s.get('phase')}")
-    print(f"{'Task':<6} {'Loại':<9} {'Trạng thái':<10} {'Lần':<4} {'Nặng':<5} {'Chi phí':<9} Nhánh / báo cáo")
-    for tid in sorted(set(s["tasks"]) | {os.path.basename(f).split("-")[0].split(".")[0] for f in glob.glob(f"{G}/tasks/*.md")}):
+    hist = [json.loads(l) for l in (rd(f"{G}/history.jsonl", "") or "").splitlines() if l.strip()]
+    gates = sorted({h["event"].upper() for h in hist if re.fullmatch(r"G[0-9S]", h["event"].upper())})
+    print(f"Giai đoạn: {s.get('phase')} · cổng đã qua: {' '.join(gates) or '(chưa)'}")
+    rows = ms_rows(s)
+    if rows:
+        print(f"\n{'Mốc':<5} {'Trạng thái':<10} {'Thời gian':<10} {'File':<5} {'Ảnh':<4} Tiêu đề")
+        for r in rows:
+            print(f"{r[0]:<5} {r[1]:<10} {r[2]:<10} {r[3]:<5} {r[4]:<4} {r[5]}")
+    tids = sorted(set(s["tasks"]) | {os.path.basename(f).split("-")[0].split(".")[0] for f in glob.glob(f"{G}/tasks/*.md")})
+    if tids:
+        print(f"\n{'Task':<6} {'Loại':<9} {'Trạng thái':<11} {'Lần':<4} {'Nặng':<5} {'Quy đổi $':<10} Nhánh / báo cáo")
+    for tid in tids:
         ts = s["tasks"].get(tid, {})
         last = ts.get("runs", [""])[-1] if ts.get("runs") else ""
-        print(f"{tid:<6} {ts.get('kind', '-'):<9} {ts.get('status', 'todo'):<10} {ts.get('attempts', 0):<4} {ts.get('weight', '-')!s:<5} "
-              f"${ts.get('cost', 0):<8} {ts.get('branch') or '-'}  {last + '/REPORT.md' if last else ''}")
+        st = ts.get("status", "todo")
+        run = ts.get("running")
+        if run:
+            st = "running" if pid_alive(run.get("pid")) else "ngắt?"
+        print(f"{tid:<6} {ts.get('kind', '-'):<9} {st:<11} {ts.get('attempts', 0):<4} {ts.get('weight', '-')!s:<5} "
+              f"{ts.get('cost', 0):<10} {ts.get('branch') or '-'}  {last + '/REPORT.md' if last else ''}")
+    wait = [tid for tid in tids if s["tasks"].get(tid, {}).get("status") == "review"]
+    if wait:
+        print(f"\nChờ nghiệm thu (xem ảnh trong REPORT.md rồi `orch.py accept <task>`): {', '.join(wait)}")
 
 
-def cmd_report(a):
-    need_init()
+def write_report(quiet=False):
     c, s = cfg(), state()
     hist = [json.loads(l) for l in (rd(f"{G}/history.jsonl", "") or "").splitlines() if l.strip()]
     total = sum(t.get("cost", 0) for t in s["tasks"].values())
     L = [f"# Báo cáo pipeline — {c['slug']}", "", f"- Thời điểm: {now()} · giai đoạn: {s.get('phase')}",
-         f"- Repo: `{os.getcwd()}`" + (f" · nhánh tích hợp `{c['integration_branch']}` (từ `{c['base_branch']}`)" if c["git"] else ""),
-         f"- Tổng chi phí claude CLI: ${total:.4f}", "", "## Task", "",
-         "| Task | Tiêu đề | Loại | Trạng thái | Lần | Commit | Báo cáo |", "|---|---|---|---|---|---|---|"]
-    for tid, ts in sorted(s["tasks"].items()):
-        last = ts["runs"][-1] if ts.get("runs") else ""
-        L.append(f"| {tid} | {ts.get('title', '')} | {ts.get('kind', '')} | {ts.get('status')} | {ts.get('attempts', 0)} | "
-                 f"{ts.get('merge_commit') or ts.get('commit') or '-'} | {last}/REPORT.md |")
+         f"- Repo: `{os.getcwd()}`" + (f" · nhánh tích hợp `{c['integration_branch']}` (từ `{c['base_branch']}`)" if c["git"] else "")]
+    if s["tasks"]:
+        L.append(f"- Worker CLI: ${total:.2f} quy đổi (gói tháng: chỉ để so sánh, không phải tiền phải trả)")
+    ms = s.get("milestones") or {}
+    if ms:
+        L += ["", "## Mốc", "", "| Mốc | Tiêu đề | Trạng thái | Thời gian | File đổi | Ghi chú |", "|---|---|---|---|---|---|"]
+        for (mid, st, dur, nfiles, _nev, title) in ms_rows(s):
+            L.append(f"| {mid} | {title} | {st} | {dur} | {nfiles} | {ms[mid].get('note', '')} |")
+        for mid, m in sorted(ms.items()):
+            if m.get("evidence"):
+                L += ["", f"Ảnh bằng chứng {mid}:"] + [f"- `{p}`" for p in m["evidence"]]
+    if s["tasks"]:
+        L += ["", "## Task (worker CLI)", "", "| Task | Tiêu đề | Loại | Trạng thái | Lần | Commit | Báo cáo |", "|---|---|---|---|---|---|---|"]
+        for tid, ts in sorted(s["tasks"].items()):
+            last = ts["runs"][-1] if ts.get("runs") else ""
+            L.append(f"| {tid} | {ts.get('title', '')} | {ts.get('kind', '')} | {ts.get('status')} | {ts.get('attempts', 0)} | "
+                     f"{ts.get('merge_commit') or ts.get('commit') or '-'} | {last}/REPORT.md |")
     tests = [h for h in hist if h["event"] == "integration_test"]
-    L += ["", "## Test tích hợp"] + ([f"- `{h['ts']}` {h['msg']} — {h.get('log')}" for h in tests[-5:]] or ["- (chưa chạy)"])
-    gates = [h for h in hist if h["event"].upper().startswith("G")]
+    L += ["", "## Test chung"] + ([f"- `{h['ts']}` {h['msg']} — {h.get('log')}" for h in tests[-5:]] or ["- (chưa chạy)"])
+    gates = [h for h in hist if re.fullmatch(r"G[0-9S]|PLAN", h["event"].upper())]
     L += ["", "## Cổng duyệt / quyết định"] + ([f"- `{h['ts']}` {h['event']}: {h['msg']}" for h in gates] or ["- (chưa có)"])
-    bad = [tid for tid, ts in s["tasks"].items() if ts.get("status") not in ("merged", "passed")]
-    L += ["", "## Còn tồn"] + ([f"- {tid}: {s['tasks'][tid].get('status')}" for tid in bad] or ["- Không"])
-    L += ["", f"Lịch sử đầy đủ: `{G}/HISTORY.md`, `{G}/history.jsonl`. Transcript từng lần chạy: `{G}/runs/<task>/<lần>/transcript.jsonl`."]
+    notes = [h for h in hist if h["event"].upper() in ("NOTE", "LEARN", "RULE")]
+    if notes:
+        L += ["", "## Góp ý của người dùng / bài học"] + [f"- `{h['ts']}` {h['event']}: {h['msg']}" for h in notes[-30:]]
+    bad = [f"- {tid}: {ts.get('status')}" for tid, ts in sorted(s["tasks"].items()) if ts.get("status") not in ("merged", "passed")]
+    bad += [f"- {mid}: {m.get('status')}" for mid, m in sorted(ms.items()) if m.get("status") != "done"]
+    L += ["", "## Còn tồn"] + (bad or ["- Không"])
+    L += ["", f"Lịch sử đầy đủ: `{G}/HISTORY.md`, `{G}/history.jsonl`. File đổi từng mốc: `{G}/milestones/<mốc>-files.txt`."]
     wr(f"{G}/REPORT.md", "\n".join(L) + "\n")
-    history("report", f"Sinh {G}/REPORT.md", cost=round(total, 4))
-    print("\n".join(L))
+    if not quiet:
+        history("report", f"Sinh {G}/REPORT.md")
+        print("\n".join(L))
+
+
+def cmd_report(a):
+    need_init()
+    write_report()
 
 
 def cmd_history(a):
@@ -930,7 +1218,7 @@ def cmd_history(a):
 MANUAL_NOTE = """## Chế độ LÀM TAY
 - Người dùng đang ngồi cùng: được hỏi lại, được đề xuất, được dùng Unity Editor đang mở nếu người dùng đồng ý.
 - Vẫn giữ PHẠM VI và luật repo. KHÔNG git commit / checkout / merge (orchestrator làm).
-- Xong việc: tóm tắt đã làm gì, chưa làm gì, rủi ro; nhắc người dùng chạy `/gplay-game:done {tid}` (hoặc `orch.py done {tid} --note "..."`)
+- Xong việc: tóm tắt đã làm gì, chưa làm gì, rủi ro; nhắc người dùng chạy `orch.py done {tid} --note "..."`
   ở phiên orchestrator để commit + test + ghi báo cáo."""
 
 
@@ -992,7 +1280,8 @@ def cmd_done(a):
     use_git = c["git"] and t["kind"] == "code"
     junk = c.get("commit_ignore") or []
     files = [f for f in changed_files(cwd=cwd) if f not in set(m["before"])
-             and not any(fnmatch.fnmatch(f, g) or fnmatch.fnmatch(os.path.basename(f), g) for g in junk)] if c["git"] else []
+             and not any(fnmatch.fnmatch(f, g) or fnmatch.fnmatch(os.path.basename(f), g) for g in junk)] if c["git"] \
+        else scan_changed(dt.datetime.fromisoformat(m["started"]).timestamp(), c)
     if c["git"]:
         wr(f"{run_dir}/diff.txt", sh(["git", "diff", "--stat"], cwd=cwd).stdout + "\n" + sh(["git", "diff"], cwd=cwd).stdout[:200000])
     src = session_file(m["sid"])
@@ -1011,6 +1300,7 @@ def cmd_done(a):
     ctx = {"c": c, "t": t, "tid": tid, "attempt": m["attempt"], "use_git": use_git, "branch": m["branch"], "cwd": cwd,
            "isolated": m["isolated"], "run_dir": run_dir, "sid": m["sid"], "weight": m.get("weight"), "model": "manual",
            "res": {"structured_output": worker, "session_id": m["sid"]}, "err": "", "files": files, "commit": commit,
+           "manual_done": True, "evidence": expand_evidence(a.evidence or []),
            "duration_s": int((dt.datetime.now().astimezone() - started).total_seconds())}
     st = finalize(ctx)
     with LOCK:
@@ -1049,7 +1339,13 @@ def main():
     p = sp.add_parser("init"); p.add_argument("--slug"); p.add_argument("--no-git", action="store_true")
     p.add_argument("--no-guard", action="store_true", help="không tạo .claude/guard.json"); p.set_defaults(f=cmd_init)
     p = sp.add_parser("phase"); p.add_argument("name"); p.set_defaults(f=cmd_phase)
-    p = sp.add_parser("log"); p.add_argument("code"); p.add_argument("message"); p.add_argument("--task"); p.set_defaults(f=cmd_log)
+    p = sp.add_parser("log"); p.add_argument("code"); p.add_argument("message", nargs="?", default="")
+    p.add_argument("--task"); p.add_argument("--file", help="đọc nội dung từ file UTF-8"); p.set_defaults(f=cmd_log)
+    p = sp.add_parser("ms"); p.add_argument("id", nargs="?"); p.add_argument("action", nargs="?", choices=["start", "done"])
+    p.add_argument("title", nargs="?"); p.add_argument("--note", default=""); p.add_argument("--evidence", nargs="*")
+    p.add_argument("--fail", action="store_true"); p.set_defaults(f=cmd_ms)
+    p = sp.add_parser("accept"); p.add_argument("task"); p.add_argument("--note", default=""); p.add_argument("--evidence", nargs="*")
+    p.add_argument("--force", action="store_true"); p.add_argument("--merge", action="store_true"); p.set_defaults(f=cmd_accept)
     p = sp.add_parser("branch"); p.set_defaults(f=cmd_branch)
     p = sp.add_parser("run"); p.add_argument("tasks", nargs="+")
     p.add_argument("--parallel", nargs="?", type=int, const=0, help="chạy song song; số = phiên tối đa (mặc định max_parallel)")
@@ -1067,7 +1363,7 @@ def main():
     p.set_defaults(f=cmd_open)
     p = sp.add_parser("done"); p.add_argument("task"); p.add_argument("--note", default="")
     p.add_argument("--fail", action="store_true", help="ghi là chưa đạt"); p.add_argument("--merge", action="store_true")
-    p.set_defaults(f=cmd_done)
+    p.add_argument("--evidence", nargs="*"); p.set_defaults(f=cmd_done)
     a = ap.parse_args()
     a.f(a)
 

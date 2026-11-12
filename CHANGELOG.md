@@ -1,5 +1,21 @@
 # Changelog
 
+- 2026-11-13 (0.2.0): làm lại sau dự án thử đầu tiên chạy trọn pipeline (33 task, 49 lần chạy CLI: 21 lần đầu "partial", 20 task phải đóng tay,
+  168 lệnh bị từ chối quyền, plan viết lại 4 lần vì nghiên cứu hời hợt).
+  - **Nghiên cứu là trọng tâm**: lệnh `research` + `reference/research.md` + mẫu `templates/research/` (teardown luật có nhãn bằng chứng, visual-spec:
+    luồng màn, bố cục theo %, camera, vật thể, chuyển động, UI). Bắt buộc có video gameplay; `scripts/study_video.py` (frame đánh số, điểm cắt cảnh,
+    bảng màu, `--clip` soi chuyển động) thay `frames.py`. Cổng G1: luật lõi không còn `[suy luận]`, không hỏi người dùng luật của game gốc.
+  - **Cổng GS (level mẫu)**: mốc 1 = 1 level chơi đúng luật + hình khớp ảnh chuẩn (`scripts/side_by_side.py`, lưới %), người dùng duyệt rồi mới làm tiếp.
+  - **Phiên chính tự làm theo mốc** (4–7 mốc, subagent cho phần lớn), không còn mặc định mỗi task 1 phiên claude CLI. 15 lệnh → 6:
+    `start`, `research`, `plan`, `build`, `status`, `learn`. `orch.py ms` ghi mốc: thời gian, file đổi, ảnh bằng chứng; REPORT.md sinh lại mỗi mốc.
+  - **Art theo yêu cầu** (`reference/art-on-demand.md`, `templates/art-brief.md`): Codex / Gemini vẽ khi người dùng bảo; đúng kích thước, không kéo dãn.
+  - **Plugin tổng quát**: không thêm playbook theo 1 game; cơ chế chưa có playbook → teardown là playbook của dự án (`mechanics.md`).
+  - Worker CLI thành tuỳ chọn (`reference/cli-workers.md`), sửa `orch.py`: tự dò claude CLI (extension IDE tự cập nhật) + kiểm trước khi tính lần chạy;
+    quyền mặc định có `PowerShell(...)`; luật worker "1 lệnh đơn, không gọi vòng lệnh bị chặn"; `verify:` / `evidence:` (orch chạy Unity có GPU, liệt kê ảnh);
+    trạng thái `review` + `accept` thay cho việc lạm dụng `open` / `done`; chi phí không cộng trùng khi `--fix` tiếp phiên, ghi rõ là USD quy đổi,
+    `budget_usd` mặc định 0; lần chạy bị ngắt được ghi `interrupted`; không git vẫn biết file đổi (mtime); `log` nhận stdin / `--file` (giữ dấu tiếng Việt);
+    `persist_sessions`; `init` không còn tạo task R1 / R2.
+
 - 2026-11-03: bản đầu. Tổng hợp từ quy trình Fashion Puzzle (khái quát hoá) + học từ Claude-Code-Game-Studios, awesome-gamedev-agent-skills,
   Unity-Technologies/skills (unity-pipeline), m4bwav/unity-agent (thang kiểm tra, LEARNINGS), Unity-Skills (dry-run, transaction),
   devdavv/unity-ai-workflow (file nạp sẵn ngắn), Anthropic skill best practices.

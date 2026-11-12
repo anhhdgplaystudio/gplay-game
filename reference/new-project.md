@@ -1,5 +1,8 @@
 # Mở dự án game mới
 
+Theo pipeline `/gplay-game:*` thì các câu hỏi dưới đây đã được trả lời ở intake / G1 / G2 (đọc `.game/intake.md`, `questions.md`, `research/base.md` trước, chỉ hỏi phần còn thiếu),
+và việc dựng dự án nằm trong mốc M1 (level mẫu).
+
 ## 1. Hỏi người dùng (ngắn, 1 lần)
 
 - Tên game, package id, nền tảng (Android / iOS), phiên bản Unity.
@@ -41,11 +44,17 @@ Dự án trắng (không base): tạo 3 scene Loading / Home / Gameplay, singlet
 - `dotnet build Assembly-CSharp-Editor.csproj -nologo -v q`, chỉ xem dòng ` error `.
 - File `.cs` mới chưa có trong csproj tới khi Unity mở lại → `scripts/check_build.py` thêm vào bản tạm.
 - Unity vẫn là nơi quyết định cuối (define, asmdef, Editor-only).
+- Dự án chia asmdef riêng (vd luật chơi C# thuần `noEngineReferences`): `Assembly-CSharp-Editor.csproj` không còn chứa code game → kiểm bằng
+  `dotnet test` cho phần thuần + 1 script compile Unity batchmode (`-batchmode -nographics -quit`, đọc log tìm `error CS`); ghi lệnh vào game-profile
+  và `orch.py config tests`.
+- Đổi `ProjectSettings` (identity, build settings) bằng editor script chạy `-executeMethod`, không sửa tay file `.asset` (guard chặn).
+- Repo chưa có git: đề xuất `git init` cục bộ (không cần remote) để hoàn tác được; người dùng không muốn → sao lưu `Assets Packages ProjectSettings` ra ổ tạm trước khi sửa.
+- Asset bên thứ ba / bóc từ game khác (để tham khảo hoặc làm hình tạm): 1 thư mục riêng `Assets/_Placeholder/<nguồn>/` + script `release_check` liệt kê thứ phải thay.
 
 ## 5. Thứ tự sau khi mở
 
-1. Prototype cơ chế: **1 level dựng tay chơi được** + hàm tự giải (playbook trong mechanics.md).
-2. Chốt định dạng level dữ liệu + importer + validator ([level-pipeline.md](level-pipeline.md)).
+1. **Level mẫu** (mốc M1, cổng GS): 1 level dựng tay chơi được đúng teardown + hàm tự giải + hình khớp ảnh chuẩn (mechanics.md, verification.md).
+2. Chốt định dạng level dữ liệu + importer + validator + ngưỡng độ khó ([level-pipeline.md](level-pipeline.md)).
 3. Làm 3–5 level thật qua pipeline, chạy thử → sửa pipeline.
-4. UI theo mockup + vòng meta.
+4. Luồng màn Loading → Home → Game, UI theo mockup + vòng meta.
 5. Sản xuất hàng loạt.

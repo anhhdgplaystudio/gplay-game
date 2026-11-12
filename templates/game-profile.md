@@ -15,6 +15,9 @@ Skill `gplay-game` đọc file này trước. Giá trị chưa biết để `TOD
 - Menu tool: `Tools/<Tên game>/...`
 
 ## Cơ chế
+- Luật lõi (tóm tắt từ `.game/research/teardown.md`, sửa teardown trước rồi mới sửa ở đây): TODO
+- Hình + luồng màn: `.game/research/visual-spec.md` · ảnh chuẩn: TODO (đường dẫn)
+
 | Cơ chế | Runtime | Importer | File dữ liệu |
 |---|---|---|---|
 | TODO | | | |
@@ -34,9 +37,11 @@ Skill `gplay-game` đọc file này trước. Giá trị chưa biết để `TOD
 - TODO (keystore, google-services.json, file key SDK, token web app)
 
 ## Lệnh
-- Build: `dotnet build Assembly-CSharp-Editor.csproj -nologo -v q`
-- Validator: TODO
-- Tự chơi: TODO
+- Build / compile: `dotnet build Assembly-CSharp-Editor.csproj -nologo -v q` (dự án dùng asmdef riêng: TODO lệnh compile Unity batchmode)
+- Test logic thuần: TODO
+- Validator (kèm ngưỡng độ khó): TODO
+- Tự chơi + chụp ảnh (Unity đóng, chạy có GPU, không `-nographics`): TODO · ảnh ra: TODO (ổ tạm)
+- Art tạm / bên thứ ba phải thay trước phát hành: TODO (thư mục + lệnh kiểm)
 - Dump Spine: TODO
 
 ## Quảng cáo / analytics

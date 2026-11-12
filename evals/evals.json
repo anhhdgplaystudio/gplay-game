@@ -65,31 +65,61 @@
   {
     "query": "/gplay-game:start game-noi-ghep",
     "expected_behavior": [
-      "Chạy orch.py init, đưa đề mục intake.md cho người dùng điền rồi dừng chờ",
-      "Không tự đoán nội dung intake"
+      "Hỏi xin tài liệu tham khảo trước (AskUserQuestion), tự xem rồi mới hỏi phần thiếu",
+      "Chạy orch.py init, hiện thẻ 'Mình hiểu như sau' có nhãn (đoán) / (mặc định), chỉ ghi intake khi người dùng đồng ý",
+      "Sau G0 chuyển sang bước research, không lập plan ngay"
     ]
   },
   {
-    "query": "Intake điền xong rồi, làm tiếp đi.",
+    "query": "/gplay-game:research (intake chỉ có link store, chưa có video)",
     "expected_behavior": [
-      "Ghi G0, chạy R1 và R2 song song bằng orch.py run --parallel",
-      "Tổng hợp questions.md có phương án + khuyến nghị, hỏi người dùng trước khi viết plan"
+      "Đọc reference/research.md; tự tìm + tải video gameplay vào ổ tạm, hoặc xin người dùng file video; không lập luật từ ảnh store",
+      "Chạy study_video.py, Read sheet.jpg + frame gốc, dùng --clip cho các chuyển động",
+      "Viết teardown.md (mỗi luật có nhãn bằng chứng) và visual-spec.md (luồng màn, bố cục theo %, camera, vật thể, chuyển động)",
+      "Giao subagent đọc base song song",
+      "Luật lõi còn [suy luận] thì soi thêm, không hỏi người dùng luật của game gốc; câu hỏi nào về luật phải kèm đường dẫn frame",
+      "Trình thẻ đối chiếu kèm đường dẫn frame rồi mới ghi G1"
     ]
   },
   {
-    "query": "Plan ok, chạy task đi.",
+    "query": "Plan ok, làm đi.",
     "expected_behavior": [
-      "Ghi G2, tạo nhánh tích hợp, chạy từng task tuần tự bằng orch.py run",
-      "Sau mỗi task dán Nơi thực hiện + Kết quả",
-      "Task failed thì --fix tối đa max_fix lần, không gộp",
-      "Task passed thì merge trước khi chạy task phụ thuộc",
-      "Orchestrator không tự sửa code game"
+      "Ghi G2, bắt đầu mốc M1 level mẫu bằng orch.py ms M1 start, làm ngay trong phiên chính (không orch.py run từng task)",
+      "Tự chạy Unity tự chơi + chụp ảnh, Read ảnh, ghép side_by_side với ảnh chuẩn",
+      "orch.py ms M1 done kèm --evidence; báo người dùng đường dẫn đầy đủ từng ảnh",
+      "Hỏi cổng GS; không làm M2 khi chưa được duyệt"
     ]
   },
   {
-    "query": "Task T04 fail 3 lần rồi.",
+    "query": "Camera đang ngược so với game gốc, sửa đi.",
     "expected_behavior": [
-      "Dừng tự sửa, báo người dùng kèm đường dẫn REPORT.md và test.log, đề xuất hướng xử lý"
+      "Ghi O log NOTE, sửa visual-spec.md trước rồi mới sửa code",
+      "Chụp lại, ghép cạnh ảnh chuẩn, đưa đường dẫn ảnh",
+      "Lỗi cùng loại lặp lần 2 thì ghi bài học bằng /gplay-game:learn"
+    ]
+  },
+  {
+    "query": "Vẽ lại bộ UI cho đẹp hơn.",
+    "expected_behavior": [
+      "Đọc reference/art-on-demand.md; hỏi công cụ (Codex / Gemini) và phong cách nếu chưa rõ",
+      "Viết BRIEF.md có kích thước pixel thật từng file, vẽ ở thư mục tạm ngoài repo",
+      "Kiểm kích thước + alpha, Read ảnh, đưa vào game bằng editor script, không kéo dãn (9-slice khi cần co giãn)",
+      "Không tự dựng model 3D; không sao chép nhân vật / logo game gốc"
+    ]
+  },
+  {
+    "query": "Chạy song song mấy việc logic này qua đêm bằng claude CLI.",
+    "expected_behavior": [
+      "Đọc reference/cli-workers.md; kiểm dự án có git, không có thì nói rõ không song song được",
+      "Viết file task có test / verify / evidence, chạy orch.py run --parallel",
+      "Task ở trạng thái review: Read ảnh rồi orch.py accept hoặc run --fix; không dùng open / done để lách"
+    ]
+  },
+  {
+    "query": "Làm game clone một game xếp hàng chưa có trong mechanics.md.",
+    "expected_behavior": [
+      "Không ép về playbook gần giống; luật lấy từ teardown theo mục 'Cơ chế chưa có playbook'",
+      "Ghi tóm tắt luật vào game-profile của dự án, không thêm playbook riêng game đó vào plugin"
     ]
   }
 ]

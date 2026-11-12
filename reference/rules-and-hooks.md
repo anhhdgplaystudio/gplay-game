@@ -7,7 +7,8 @@ Luật viết trong tài liệu, agent vẫn vi phạm được. Hook chặn th�
 Plugin gplay-game có sẵn hook PreToolUse (`hooks/hooks.json` → `scripts/guard.py`, exit 2 = chặn, lý do qua stderr).
 Hook chỉ chặn ở dự án có `.claude/guard.json` `"enabled": true` (mẫu `templates/guard.json`; `/gplay-game:start` tự chép), dự án khác cho qua.
 guard.json: `yaml` (bật / tắt chặn YAML), `secrets`, `no_edit` (glob từ gốc dự án), `no_cmd` (`{pattern, why}`). `guard.json` của plugin = luật chung mọi game, gộp với của dự án.
-Thêm luật: `/gplay-game:add-rule`.
+Thêm luật: `/gplay-game:learn`.
+Guard chặn đúng cả khi đề bài yêu cầu sửa file đó (vd `ProjectSettings.asset`, đổi identity): làm qua editor script chạy batchmode, không tắt guard.
 
 | Sự kiện | Chặn / làm |
 |---|---|

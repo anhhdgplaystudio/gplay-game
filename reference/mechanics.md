@@ -4,13 +4,27 @@ Mọi cơ chế: chung 1 class `PuzzleLevel` (thời gian, thưởng, thắng / 
 **mô hình dữ liệu · class runtime · trường json · hàm tự giải · tiến trình `done/total` cho HUD · lỗi hay gặp**.
 Logic luật (đúng / sai, xong bước) để trong class C# thuần → test được không cần scene.
 
+Playbook dưới đây là các cơ chế **đã làm ở ≥ 1 game GPlay**. Game tham khảo không khớp mục nào (hoặc chỉ gần giống) → **không ép về playbook gần nhất**:
+luật lấy từ `.game/research/teardown.md` (xem [research.md](research.md)), viết theo khung ở mục "Cơ chế chưa có playbook".
+
 ## Mục lục
+- Cơ chế chưa có playbook (làm từ teardown)
 - Kéo thả vào chỗ (dress-up / lắp ghép)
 - Tìm đồ (bấm / soi kính lúp)
 - Giải đố từng bước (trick / "annoying")
 - Match / tile
 - Sort (ball / water / hàng)
 - Merge
+
+## Cơ chế chưa có playbook (làm từ teardown)
+
+1. Teardown đã trả lời 8 câu (chạm vào gì, tác động bao nhiêu vật, đường đi, cái gì tự động, sức chứa, thắng / thua, bấm sai, cơ chế phụ) bằng frame.
+2. Viết luật thành **mô hình thuần C#** (không `UnityEngine`): trạng thái + `Apply(nước đi) → danh sách sự kiện`; runtime chỉ diễn lại sự kiện. Mỗi dòng "Luật lõi" của teardown = ≥ 1 test.
+3. Dữ liệu level: file text / json đọc được bằng mắt, validator kiểm cấu trúc + giải được.
+4. **Hàm tự giải**: cơ chế xác định, không gian nhỏ → solver (BFS / DFS + hash trạng thái); không thì kịch bản bước theo dữ liệu level. Dùng cho tự chơi và đo độ khó.
+5. **Chơi ngẫu nhiên** N lần → tỉ lệ thắng: phát hiện level / luật "bấm bừa cũng thắng" (xem verification.md mục ngưỡng độ khó).
+6. Hình: theo visual-spec (bố cục %, camera, danh mục vật thể), tạm bằng khối đúng cỡ; ghép ảnh so trước khi làm tiếp.
+7. Ghi tóm tắt luật + tên class + lệnh vào `.claude/game-profile.md` của dự án. Chỉ chép thành playbook vào file này khi làm game thứ 2 cùng cơ chế.
 
 ## Kéo thả vào chỗ
 
@@ -62,6 +76,7 @@ Logic luật (đúng / sai, xong bước) để trong class C# thuần → test 
 - Luật: 2 vật cùng cấp → cấp +1. Cân bằng kinh tế: thời gian sinh, giá đơn, năng lượng.
 - Mô phỏng kinh tế bằng script (không cần Unity) trước khi chỉnh số.
 
-## Thêm cơ chế mới
+## Thêm playbook mới vào file này
 
-Viết vào đây theo cùng 6 mục, rồi thêm validator + tự giải trước khi làm level hàng loạt.
+Chỉ khi cơ chế đã dùng ở ≥ 2 game (qua `/gplay-game:learn`): viết theo cùng 6 mục, dạng chung, không tên class / số liệu của 1 game.
+Cơ chế của 1 game đơn lẻ ở lại trong teardown + game-profile của dự án đó.

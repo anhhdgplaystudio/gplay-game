@@ -17,7 +17,7 @@ Quy trình đầy đủ: `${CLAUDE_PLUGIN_ROOT}/reference/pipeline.md`. Luật c
 
 ## 1. Đọc dự án (im lặng, chưa báo)
 - Đã có `.game/`: chưa có G0 (`O history --event G0` trống) → không init lại, làm tiếp từ bước 2 (giữ mục intake đã điền);
-  đã có G0 → báo dùng `/gplay-game:continue`. Dừng.
+  đã có G0 → báo dùng `/gplay-game:status` để xem bước kế. Dừng.
 - Ghi nhận: thư mục ở gốc repo (thư mục lạ như `Buzzy Bus/` có thể là base hoặc art), `ProjectSettings/ProjectVersion.txt`,
   `AGENTS.md`, `.claude/game-profile.md`, ảnh / video / PSD có sẵn trong repo (Glob `*.mp4|*.mov|*.png|*.jpg|*.psd`, ngoài `Library/`).
 - Slug = `$ARGUMENTS` (từ đầu không phải link / đường dẫn), không có thì tự đặt theo tên repo / thư mục (chữ thường, gạch ngang). **Không hỏi**, hiện trên thẻ.
@@ -33,14 +33,16 @@ Quy trình đầy đủ: `${CLAUDE_PLUGIN_ROOT}/reference/pipeline.md`. Luật c
 Người dùng chọn phương án mà chưa đưa link (vd chọn file có sẵn) → dùng luôn, không hỏi lại. Bỏ qua / tắt hộp → hỏi lại câu này bằng chữ.
 
 ## 3. Tự xem tài liệu
-`O init --slug <slug>` (tạo `.game/`, task R1 / R2, `.claude/guard.json`). Rồi xem từng nguồn, ghi đường dẫn / URL vào `.game/intake.md` mục 2:
+`O init --slug <slug>` (tạo `.game/`, `.claude/guard.json`). Rồi xem từng nguồn, ghi đường dẫn / URL vào `.game/intake.md` mục 2.
+Ở bước này chỉ xem **đủ để hiểu game thuộc loại gì**; mổ xẻ kỹ (luật có bằng chứng, spec hình) là việc của `/gplay-game:research`:
 - **Link store** (Google Play / App Store): WebFetch tên game, thể loại, mô tả, số tải, ảnh chụp; ghi cơ chế, meta, kiểu quảng cáo / IAP thấy được.
-- **YouTube / TikTok**: WebFetch tiêu đề + mô tả; không xem được hình → ghi "cần frame" (người dùng tải video về thì trích frame được).
-- **Video file**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/frames.py" <video> <ổ tạm>/frames/<tên> --sheet` rồi Read `sheet.jpg` + vài frame
+- **YouTube / TikTok**: WebFetch tiêu đề + mô tả; ghi link để bước research tải về (cách tải: `reference/research.md` mục 1).
+- **Video file**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/study_video.py" <video> <ổ tạm>/study/<tên>` rồi Read `sheet.jpg` + vài frame
   (ổ tạm: `D:/tmp` nếu có, không thì scratchpad; không để trong repo). Ghi: vòng chơi 1 level, thao tác, thắng / thua, UI (HUD, nút), meta.
 - **Ảnh / mockup / art**: Read ảnh (thư mục nhiều ảnh: xem tối đa ~12 ảnh tiêu biểu). PSD: chỉ ghi tên + kích thước, xử lý ở pipeline art.
 - **Chỉ có tên game tương tự**: WebSearch tên game + "gameplay", lấy trang store.
-- **Thư mục base / dự án Unity**: liệt kê `Assets/` cấp 1–2, Unity version, có framework nào (popup, UI, SDK). R2 sẽ đọc kỹ.
+- **Thư mục base / dự án Unity**: liệt kê `Assets/` cấp 1–2, Unity version, có framework nào (popup, UI, SDK). Bước research sẽ đọc kỹ.
+- **Chưa có video gameplay nào** → ghi rõ trên thẻ "chưa có video: bước research sẽ tự tìm + tải, hoặc cần người dùng gửi". Đây là nguồn quan trọng nhất.
 Gom kết quả thành thẻ tóm tắt.
 
 ## 4. Thẻ "Mình hiểu như sau" + hỏi phần thiếu
@@ -59,6 +61,7 @@ Trả lời mở ra mơ hồ mới thì được thêm tối đa 1 lượt.
 - Cập nhật thẻ theo câu trả lời, hiện lại, rồi AskUserQuestion "Ghi vào `.game/intake.md`?": `Ghi (Recommended)` / `Sửa 1 mục` / `Chưa ghi`.
   Chỉ ghi khi chọn Ghi. Sửa → hỏi mục nào (bằng chữ), hiện thẻ lại, hỏi lại.
 - Ghi: điền mọi mục của `.game/intake.md` (giữ nhãn *(đoán)* / *(mặc định)*), thêm bí mật vào `secrets` của `.claude/guard.json`
-  (chỉ tên / đuôi file, không đọc nội dung). Frame video đã trích: ghi đường dẫn vào intake mục 2 để R1 dùng.
-- Chưa có `AGENTS.md` / `.claude/game-profile.md` → ghi 1 dòng "tạo ở bước plan" (mẫu `${CLAUDE_PLUGIN_ROOT}/templates/`).
-- `O log G0 "intake xong: <cơ chế>, <số nguồn> nguồn tham khảo"` → làm tiếp như `/gplay-game:continue` (chạy R1 / R2).
+  (chỉ tên / đuôi file, không đọc nội dung). Frame video đã trích: ghi đường dẫn vào intake mục 2 để bước research dùng lại.
+- Chưa có `AGENTS.md` / `.claude/game-profile.md` → ghi 1 dòng "tạo ở mốc M1" (mẫu `${CLAUDE_PLUGIN_ROOT}/templates/`).
+- `O log G0 "intake xong: <cơ chế>, <số nguồn> nguồn tham khảo"` · `O phase research` → làm tiếp luôn bước nghiên cứu
+  (đọc `${CLAUDE_PLUGIN_ROOT}/skills/research/SKILL.md` và làm theo), không cần người dùng gõ lệnh.

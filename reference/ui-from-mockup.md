@@ -14,6 +14,12 @@ Script nên có: `make_layouts`, `preview <layout>`, `crop <mockup> x0 y0 x1 y1`
 ## Luật
 
 - Art **giữ kích thước gốc**, vị trí khớp mockup; không thu nhỏ nút để lấy chỗ.
+- **Không kéo dãn**: `Image` hiện đúng tỉ lệ sprite (SetNativeSize hoặc scale đều); phần phải co giãn (thanh, khung popup, nút dài theo chữ) dùng 9-slice có border,
+  hoặc vẽ riêng đúng cỡ. Tự chơi có bước kiểm méo tự động (verification.md).
+- Chưa có mockup / art: dựng UI tạm bằng khối màu **đúng vị trí + kích thước theo visual-spec**; art thật vẽ khi người dùng yêu cầu ([art-on-demand.md](art-on-demand.md)),
+  brief ghi kích thước pixel thật từng file lấy từ layout này.
+- Font: chọn font đủ glyph cho mọi ngôn ngữ bản đầu ngay từ đầu (tiếng Việt cần dấu); 1 font chính cho cả game, kiểm glyph thiếu + chữ tràn ở từng ngôn ngữ.
+- HUD không đè lên vùng chơi: chia vùng theo % của visual-spec.
 - Banner thật cao hơn banner trong mockup thường ~30 px → phần tử bám đáy nâng thêm (1 hằng số chung).
 - Safe area (tai thỏ) cho HUD trên; thử tỉ lệ 9:16, 9:19.5, 9:21, tablet 3:4.
 - Text dùng 1 prefab chuẩn (font, Best Fit, Min = ½ Max), gắn component localize, không gõ chữ cứng.

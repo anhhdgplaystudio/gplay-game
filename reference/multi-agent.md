@@ -1,5 +1,8 @@
 # Giao việc song song (Codex, Gemini / agy, subagent)
 
+Nhờ Codex / Gemini **vẽ art**: xem [art-on-demand.md](art-on-demand.md). Chạy task code bằng phiên claude CLI riêng: [cli-workers.md](cli-workers.md).
+File này nói về giao **sản xuất level hàng loạt**.
+
 ## Khi nào
 
 Sản xuất nhiều level cùng định dạng, mỗi level độc lập (đọc art + video → viết json + controller). Không dùng cho việc đổi pipeline / base class.

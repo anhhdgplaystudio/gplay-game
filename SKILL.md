@@ -1,6 +1,6 @@
 ---
 name: gplay-game
-description: Quy trình làm game puzzle casual mobile mới bằng Unity, từ mở dự án tới phát hành - dựng dự án từ base template, chốt cơ chế chơi (kéo thả, tìm đồ, giải đố từng bước, match/tile, sort, merge), pipeline art PSD sang level dữ liệu, importer, database level, controller riêng từng level, tự chơi thử batchmode, UI theo mockup, localization nhiều ngôn ngữ, quảng cáo / IAP / analytics, checklist phát hành, giao việc song song cho Codex / Gemini. Dùng khi bắt đầu một game puzzle / casual mới, dựng cơ chế hoặc pipeline level đầu tiên, viết AGENTS.md / game-profile cho dự án game, hoặc khi người dùng nhắc "game mới", "dự án mới", "làm game puzzle".
+description: Quy trình làm game puzzle casual mobile mới bằng Unity, từ mở dự án tới phát hành - nghiên cứu kỹ game tham khảo (mổ video gameplay, teardown luật chơi có bằng chứng, spec hình và luồng màn), dựng dự án từ base template, chốt cơ chế chơi (kéo thả, tìm đồ, giải đố từng bước, match/tile, sort, merge, hoặc cơ chế mới theo teardown), level mẫu được duyệt rồi mới làm tiếp theo mốc, pipeline art PSD sang level dữ liệu, importer, database level, tự chơi thử batchmode và ghép ảnh so mẫu, UI theo mockup, localization nhiều ngôn ngữ, quảng cáo / IAP / analytics, checklist phát hành, art theo yêu cầu bằng Codex / Gemini. Dùng khi bắt đầu một game puzzle / casual mới, phân tích / clone cơ chế một game tham khảo, dựng cơ chế hoặc pipeline level đầu tiên, viết AGENTS.md / game-profile cho dự án game, hoặc khi người dùng nhắc "game mới", "dự án mới", "làm game puzzle".
 ---
 
 # Làm game puzzle casual mới (Unity, mobile)
@@ -13,31 +13,41 @@ Skill này là **quy trình chung**. Thông tin riêng từng dự án (namespac
 1. Đọc luật của repo: `AGENTS.md`, `CLAUDE.md`, `.claude/game-profile.md`. Luật repo **thắng** skill này.
 2. Chưa có `game-profile.md` → dự án mới: làm theo [reference/new-project.md](reference/new-project.md) trước mọi việc khác.
 3. Đọc `ProjectSettings/ProjectVersion.txt` (lệnh Unity khác theo phiên bản).
-4. Xem `LEARNINGS.md` (bài học từ các dự án trước) và `RULES.md` (luật chung thêm bằng `/gplay-game:add-rule`) của plugin.
+4. Xem `LEARNINGS.md` (bài học từ các dự án trước) và `RULES.md` (luật chung thêm bằng `/gplay-game:learn`) của plugin.
+
+Skill này dùng cho **mọi** game casual / puzzle, không riêng cơ chế nào: luật của game cụ thể nằm ở `.game/research/teardown.md` + game-profile của dự án đó.
 
 ## Pipeline /gplay-game:* (cách làm mặc định cho dự án mới)
 
-Người dùng gõ `/gplay-game:start` (dự án mới) hoặc `/gplay-game:continue` (làm tiếp); danh sách lệnh: `/gplay-game:help`. Làm theo [reference/pipeline.md](reference/pipeline.md):
-intake → nghiên cứu ∥ đọc base → câu hỏi + đề xuất → plan → chia task → **mỗi task chạy bằng claude CLI** (`scripts/orch.py run`)
-(song song tối đa 3 phiên theo độ nặng, mỗi task 1 git worktree) → test đơn từng task → gộp → test tích hợp → sửa bug → báo cáo. Có cổng duyệt G0–G3, lịch sử `.game/HISTORY.md` + transcript từng lần chạy,
-báo cáo "nơi thực hiện + kết quả" sau mỗi task.
-Intake (chưa có G0, từ `start` hay `continue`): luôn xin tài liệu tham khảo trước, tự xem rồi mới hỏi phần thiếu (luồng ở `skills/start/SKILL.md`).
-Mọi câu hỏi cho người dùng (intake, câu hỏi G1, duyệt plan, xác nhận) dùng tool **AskUserQuestion**, không liệt kê thành chữ trong chat.
+Lệnh: `start` (intake) · `research` · `plan` · `build` (làm mốc kế) · `status` (tiến độ + bước kế) · `learn`. Làm theo [reference/pipeline.md](reference/pipeline.md):
+
+```
+start ─G0→ research ─G1→ plan ─G2→ build M1 "level mẫu" ─GS→ build M2..Mn → report ─G3→ learn
+```
+- **Nghiên cứu là bước quan trọng nhất** ([research.md](reference/research.md)): phải có video gameplay, mổ bằng `scripts/study_video.py`, viết teardown luật chơi
+  (mỗi luật gắn frame bằng chứng) + spec hình và luồng màn. Luật lõi còn `[suy luận]` thì chưa được lập plan. Không hỏi người dùng luật của game gốc khi video trả lời được.
+- **Level mẫu trước, mọi thứ khác sau** (cổng GS): 1 level chơi đúng luật, màn chơi ghép cạnh ảnh chuẩn (`scripts/side_by_side.py`), người dùng duyệt rồi mới làm meta / UI / nội dung.
+- **Phiên chính tự làm từng mốc** (code, chạy Unity, xem ảnh); phần lớn + độc lập giao subagent trong cùng phiên. Không mặc định mở phiên claude CLI riêng cho từng task
+  (tuỳ chọn khi người dùng yêu cầu song song / qua đêm và có git: [cli-workers.md](reference/cli-workers.md)).
+- **Art theo yêu cầu**: mặc định hình tạm đúng kích thước + bố cục; người dùng bảo vẽ thì dùng Codex / Gemini ([art-on-demand.md](reference/art-on-demand.md)).
+- Mỗi mốc: `scripts/orch.py ms` ghi thời gian, file đổi, ảnh bằng chứng; báo người dùng kèm **đường dẫn đầy đủ từng ảnh** và ước lượng thời gian mốc kế.
+- Mọi câu hỏi cho người dùng dùng tool **AskUserQuestion**, không liệt kê thành chữ trong chat.
 
 ## Các giai đoạn
 
 | Giai đoạn | Việc chính | Tài liệu |
 |---|---|---|
-| 0. Mở dự án | Clone base, xoá gameplay cũ, đổi identity, viết AGENTS.md ngắn + game-profile, gắn hook | [new-project.md](reference/new-project.md), [rules-and-hooks.md](reference/rules-and-hooks.md) |
-| 1. Cơ chế | Chọn playbook cơ chế, dựng 1 level tay chơi được, có hàm tự giải | [mechanics.md](reference/mechanics.md) |
-| 2. Pipeline level | Định dạng art xuất, file level dữ liệu, importer, database, validator | [level-pipeline.md](reference/level-pipeline.md), [art-spine.md](reference/art-spine.md) |
-| 3. UI + vòng meta | UI theo mockup, popup thắng / thua, coin, hint, quảng cáo | [ui-from-mockup.md](reference/ui-from-mockup.md), [meta-monetization.md](reference/meta-monetization.md) |
-| 4. Sản xuất nội dung | Làm level hàng loạt, text / voice, giao việc song song | [localization.md](reference/localization.md), [multi-agent.md](reference/multi-agent.md) |
-| 5. Phát hành | Hiệu năng, build, store, cấu hình thật | [release.md](reference/release.md) |
+| 0. Nghiên cứu | Thu video, teardown luật, spec hình + luồng màn, đọc base | [research.md](reference/research.md) |
+| 1. Mở dự án | Clone base, xoá gameplay cũ, đổi identity, viết AGENTS.md ngắn + game-profile, gắn hook | [new-project.md](reference/new-project.md), [rules-and-hooks.md](reference/rules-and-hooks.md) |
+| 2. Cơ chế + level mẫu | Luật C# thuần có test, 1 level tay chơi được, hàm tự giải, hình khớp ảnh chuẩn | [mechanics.md](reference/mechanics.md), [verification.md](reference/verification.md) |
+| 3. Pipeline level | Định dạng art xuất, file level dữ liệu, importer, database, validator, ngưỡng độ khó | [level-pipeline.md](reference/level-pipeline.md), [art-spine.md](reference/art-spine.md) |
+| 4. Luồng màn + UI + meta | Loading / Home / Game, UI theo mockup, popup thắng / thua, coin, hint, quảng cáo | [ui-from-mockup.md](reference/ui-from-mockup.md), [meta-monetization.md](reference/meta-monetization.md) |
+| 5. Sản xuất nội dung | Làm level hàng loạt, text / voice, giao việc song song | [localization.md](reference/localization.md), [multi-agent.md](reference/multi-agent.md) |
+| 6. Phát hành | Hiệu năng, build, store, cấu hình thật | [release.md](reference/release.md) |
 
 Mọi giai đoạn dùng chung: [verification.md](reference/verification.md) (thang kiểm tra + tiêu chí xong).
 
-Mặc định **gọn nhẹ**: không viết GDD dài trước khi có bản chơi được. Thời gian dồn vào level chơi được, validator, chạy thử, ảnh bằng chứng.
+Mặc định **gọn nhẹ**: không viết GDD dài; tài liệu duy nhất phải kỹ là teardown + visual-spec. Thời gian dồn vào nghiên cứu, level chơi được, validator, chạy thử, ảnh bằng chứng.
 
 ## Luật cứng (mọi dự án Unity)
 
@@ -57,15 +67,17 @@ Mặc định **gọn nhẹ**: không viết GDD dài trước khi có bản ch�
 ```
 - [ ] Build C# sạch (không dòng " error ")
 - [ ] Validator dữ liệu (level / layout / key) không lỗi
-- [ ] Chạy thử: tự chơi hết level / màn đổi, đã XEM ảnh chụp, so với demo / video
+- [ ] Chạy thử: tự chơi hết level / màn đổi, đã XEM ảnh chụp
+- [ ] Có hình: đã ghép cạnh ảnh chuẩn (side_by_side) và soát danh sách so của visual-spec; UI không méo, không thiếu glyph
 - [ ] Không sửa tay YAML, không ghi đè asset chỉnh tay, không chạm bí mật
 - [ ] Text mới có key localization và đã đẩy lên nguồn
-- [ ] Báo: lệnh đã chạy, file đổi, kết quả kiểm tra, việc CHƯA làm, tác dụng phụ còn lại
+- [ ] Báo: lệnh đã chạy, file đổi, kết quả kiểm tra, ĐƯỜNG DẪN ĐẦY ĐỦ từng ảnh, việc CHƯA làm, tác dụng phụ còn lại
 ```
 
 ## Vòng học
 
-- Người dùng sửa cách làm, hoặc 1 lỗi lặp lần 2 → ghi 1 dòng vào `LEARNINGS.md` (bài học chung) hoặc `game-profile.md` (chỉ dự án đó).
+- Người dùng sửa cách làm, hoặc 1 lỗi lặp lần 2 → ghi **ngay** (`/gplay-game:learn`): bài học chung vào `LEARNINGS.md`, riêng dự án vào `AGENTS.md` / `game-profile.md`.
+- Không đưa luật chơi / tên class của 1 game vào plugin; playbook cơ chế mới chỉ thêm vào `mechanics.md` khi đã dùng ở ≥ 2 game.
 - Bài học trái với nội dung skill → sửa skill + ghi `CHANGELOG.md`.
 - Sửa skill xong → chạy lại tình huống trong `evals/evals.json`.
 
@@ -78,5 +90,8 @@ Mặc định **gọn nhẹ**: không viết GDD dài trước khi có bản ch�
 - `scripts/check_dev.py <thư mục dev>`: kiểm thư mục art xuất (cặp png / cor, kích thước bội 4, mapping.json).
 - `scripts/compose_dev.py <thư mục dev> <out.png>`: ghép ảnh cảnh từ thư mục art để kiểm bằng mắt, không cần Unity.
 - `scripts/check_build.py <csproj> [file.cs ...]`: build kiểm tra, tự thêm file `.cs` mới vào bản csproj tạm.
-- `scripts/orch.py`: điều phối pipeline (init / phase / log / branch / run / merge / test / status / report / history / config), xem pipeline.md.
-- `templates/plan.md`, `templates/tasks/` (R1 nghiên cứu, R2 đọc base, T00 code, V00 review).
+- `scripts/study_video.py <video> <thư mục ra> [--clip t0 t1]`: mổ video gameplay (sheet frame đánh số, điểm cắt cảnh, bảng màu, đoạn frame liên tiếp).
+- `scripts/side_by_side.py <ảnh mẫu> <ảnh game> <ra.jpg> [--grid 10] [--blend]`: ghép ảnh so, lưới % để đọc tỉ lệ bố cục.
+- `scripts/orch.py`: sổ trạng thái + lịch sử `.game/` (init / phase / log / ms / status / report / history / config / test) và worker CLI tuỳ chọn
+  (branch / run / accept / merge / open / done), xem pipeline.md + cli-workers.md.
+- `templates/plan.md` (theo mốc), `templates/research/` (teardown, visual-spec, base), `templates/art-brief.md`, `templates/tasks/` (T00 code, V00 review: chỉ cho worker CLI).

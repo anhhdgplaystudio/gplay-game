@@ -4,7 +4,8 @@ Luật cho mọi AI agent (Claude, Codex, Gemini). Giữ file này ≤ 100 dòng
 
 ## Dự án
 
-- Unity <phiên bản>, 2D mobile dọc. Cơ chế: <...>.
+- Unity <phiên bản>, <2D / 3D> mobile dọc. Cơ chế (luật đầy đủ: `.game/research/teardown.md`): <3 dòng tóm tắt luật lõi>.
+- Hình màn chơi theo `.game/research/visual-spec.md` (ảnh chuẩn: `<đường dẫn>`).
 - Code game: `<thư mục>`; framework: `<thư mục>`. Scene: `<thư mục>` (script build cố định đường dẫn).
 - Level: `<Levels>/Level_XXX.prefab`, dựng từ `<art>/Level XXX/dev` bằng `<menu importer>`.
 
@@ -31,6 +32,10 @@ Luật cho mọi AI agent (Claude, Codex, Gemini). Giữ file này ≤ 100 dòng
 1. Art → `dev/` (PNG + .cor + mapping.json). 2. Importer dựng prefab. 3. Refresh database.
 4. Voice / text. 5. Validator + tự chơi.
 
+- So hình: `python <plugin>/scripts/side_by_side.py <ảnh chuẩn> <ảnh game> <ra.jpg> --grid 10`. Báo kết quả kèm đường dẫn đầy đủ từng ảnh.
+
 ## Bài học (thêm khi gặp lỗi lặp lại)
 
+- Lệnh bị từ chối quyền: KHÔNG gọi vòng (script tạm, wrapper). Ghi lệnh vào báo cáo để người điều phối chạy.
+- Đổi `ProjectSettings` / scene / prefab qua editor script (`-executeMethod`), guard chặn sửa tay.
 - <...>
