@@ -2,14 +2,13 @@
 name: build
 description: Làm mốc kế tiếp của plan ngay trong phiên này - code, chạy kiểm tra, tự chạy Unity chụp ảnh, ghép cạnh ảnh chuẩn, báo kết quả kèm đường dẫn ảnh; mốc 1 (level mẫu) phải qua cổng GS.
 disable-model-invocation: true
-argument-hint: "[mốc, vd M2 | góp ý cần sửa | 'cli' để giao worker]"
+argument-hint: "[mốc, vd M2 | góp ý cần sửa]"
 ---
 # /gplay-game:build
 
 `O = python "${CLAUDE_PLUGIN_ROOT}/scripts/orch.py"`. Quy trình: `${CLAUDE_PLUGIN_ROOT}/reference/pipeline.md` bước 4. Kiểm tra: `${CLAUDE_PLUGIN_ROOT}/reference/verification.md`.
 
-**Phiên này tự làm** (code + chạy Unity + xem ảnh). Không mở phiên claude CLI riêng trừ khi người dùng yêu cầu (`$ARGUMENTS` có "cli" / "song song" / "qua đêm"
-→ làm theo `${CLAUDE_PLUGIN_ROOT}/reference/cli-workers.md`).
+**Phiên này tự làm** (code + chạy Unity + xem ảnh). Không mở phiên claude CLI riêng, không tạo git worktree; phần tách được giao subagent cùng phiên.
 
 1. Cần G2 (`O history --event G2`); chưa có → `/gplay-game:plan`. `O status` + đọc `.game/plan.md`, `.game/research/teardown.md`, `visual-spec.md`,
    `AGENTS.md`, `.claude/game-profile.md`.
@@ -20,10 +19,12 @@ argument-hint: "[mốc, vd M2 | góp ý cần sửa | 'cli' để giao worker]"
 4. Làm:
    - M1 dự án mới: dọn base + `AGENTS.md` + `.claude/game-profile.md` từ mẫu (`${CLAUDE_PLUGIN_ROOT}/reference/new-project.md`).
    - Luật chơi = C# thuần + test; scene / prefab dựng bằng editor script; hình tạm bằng khối / sprite đơn sắc **đúng bố cục % và camera của visual-spec**.
-   - Phần lớn + độc lập → subagent (tool Agent) với đề: phạm vi file, luật repo, lệnh kiểm phải đạt, không chạy Unity, báo file đã đổi. Đọc lại kết quả, chạy lại lệnh kiểm.
+   - Có ≥ 2 phần lớn + độc lập → gọi các subagent (tool Agent) trong cùng 1 lượt, vùng file không chồng nhau, theo pipeline.md mục "Giao subagent". Đọc lại kết quả, chạy lại lệnh kiểm.
    - Art: không tự sinh. Người dùng yêu cầu → `${CLAUDE_PLUGIN_ROOT}/reference/art-on-demand.md`.
 5. Kiểm (dừng ở bậc đủ chứng minh, mốc có hình thì phải tới ảnh):
    compile → test logic → validator → **tự chạy Unity** dựng scene + tự chơi + chụp ảnh ra ổ tạm → **Read ảnh** →
+   (bộ kit: `python "${CLAUDE_PLUGIN_ROOT}/scripts/unity_run.py" playtest ...`, chưa có thì cài ở M1 theo `${CLAUDE_PLUGIN_ROOT}/reference/autoplay-kit.md`;
+   Editor đang mở và có unity-mcp → `${CLAUDE_PLUGIN_ROOT}/reference/unity-mcp.md`; mốc có chuyển động → `--video` rồi so với clip gốc) →
    `python "${CLAUDE_PLUGIN_ROOT}/scripts/side_by_side.py" <ảnh chuẩn> <ảnh game> <ổ tạm>/cmp_<mốc>.jpg --grid 10` → Read → soát danh sách so (visual-spec mục 9).
    Lệch → sửa ngay, lặp. Cùng 1 lỗi quá 2 vòng → dừng, báo người dùng kèm ảnh. Lệnh bị từ chối quyền → không gọi vòng, nói lệnh cần người dùng cho phép.
 6. `O ms <mốc> done --note "<kết quả 1 dòng>" --evidence <ảnh ghép> <ảnh chính...>` (chưa đạt: thêm `--fail`).

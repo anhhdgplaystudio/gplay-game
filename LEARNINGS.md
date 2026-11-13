@@ -32,3 +32,5 @@ Mỗi dòng: bài học · nguồn (dự án / level) · ngày. Bài học chỉ
 - Level sinh tự động "giải được" nhưng chạm bừa cũng thắng (17/30 level); validator phải có ngưỡng độ khó (tỉ lệ thắng khi chơi ngẫu nhiên) · 2026-11
 - Báo chi phí bằng USD làm người dùng gói tháng hiểu nhầm là tiền phải trả; ghi rõ "quy đổi" · 2026-11
 - Người dùng phải hỏi "bao giờ xong", "tiến độ": báo ước lượng khi bắt đầu mốc và thời gian thực khi xong · 2026-11
+- Script dọn tiến trình khi quá giờ mà tắt theo tên (`taskkill /IM Unity.exe`) đã tắt luôn Editor người dùng đang mở; chỉ tắt PID do chính mình khởi chạy · 2026-11
+- `pip install uv` có thể đặt `uvx.exe` ngoài PATH (thư mục Scripts của user) → tool cần `uvx` báo "not recognized"; kiểm `pip show -f` · 2026-11

@@ -2,7 +2,7 @@
 
 **Phiên Claude chính làm trực tiếp**: nghiên cứu, plan, code, chạy Unity, xem ảnh, báo người dùng. Không mặc định mở phiên claude CLI riêng cho từng task
 (mỗi phiên riêng phải đọc lại code, không chạy được Unity có GPU, làm đầy danh sách phiên). Việc code lớn tách được → **subagent trong cùng phiên** (tool Agent).
-Worker CLI (`orch.py run`) chỉ dùng khi người dùng yêu cầu chạy song song / qua đêm và dự án có git: [cli-workers.md](cli-workers.md).
+Không dùng git worktree, không chạy task bằng phiên CLI nền.
 
 `O = python "<PLUGIN>/scripts/orch.py"` (chạy ở gốc repo dự án): sổ trạng thái + lịch sử trong `.game/`.
 
@@ -49,6 +49,15 @@ Tiếp tục sau khi gián đoạn: `O status` + `O history -n 20` + đọc `.ga
    **đường dẫn đầy đủ từng ảnh**, điều chưa làm, câu hỏi cần quyết. M1 xong → hỏi GS.
 6. Người dùng góp ý về hình / luật → sửa `visual-spec.md` / `teardown.md` trước, `O log NOTE "<góp ý>"`, rồi sửa code. Góp ý lặp lại lần 2 → `/gplay-game:learn`.
 
+**Giao subagent** (khi 1 mốc có ≥ 2 phần độc lập, mỗi phần đủ lớn): gọi các subagent trong **cùng 1 lượt** để chạy song song, tối đa 3.
+Đề cho mỗi subagent phải tự đủ (nó không thấy hội thoại):
+- mục tiêu + tiêu chí xong; file nên đọc (AGENTS.md, game-profile, mục liên quan của teardown / plan);
+- **vùng file được sửa, không chồng nhau giữa các subagent** (vd A: `Scripts/Core/**` + test; B: `Tools/LevelTool/**`); file chung (asmdef, csproj, scene) do phiên chính sửa;
+- lệnh kiểm phải chạy đạt (test logic, build offline); KHÔNG chạy Unity, không commit; luật chung trong `RULES.md` của plugin;
+- báo lại: file đã đổi, lệnh đã chạy + kết quả, điều chưa làm.
+Xong: phiên chính đọc diff / file, chạy lại lệnh kiểm + compile Unity 1 lần cho tất cả, rồi mới sang bước có hình.
+Không giao subagent: việc phải nhìn (hình, UI, feel), việc sửa chung file, việc nhỏ hơn công viết đề.
+
 **5. Art** (chỉ khi người dùng yêu cầu): [art-on-demand.md](art-on-demand.md): brief → Codex / Gemini vẽ → kiểm kích thước → đưa vào game.
 
 **6. Báo cáo**: `O phase report` · `O report` → `.game/REPORT.md` (mốc, thời gian, ảnh, cổng, góp ý, còn tồn) → trình người dùng, hỏi G3.
@@ -61,7 +70,7 @@ Tiếp tục sau khi gián đoạn: `O status` + `O history -n 20` + đọc `.ga
 |---|---|
 | `intake.md` · `questions.md` · `plan.md` | Đầu vào, quyết định, kế hoạch theo mốc |
 | `research/teardown.md` · `visual-spec.md` · `base.md` | Kết quả nghiên cứu (nguồn sự thật về luật + hình) |
-| `state.json` | Giai đoạn, mốc (thời gian, file đổi, ảnh), task CLI nếu có |
+| `state.json` | Giai đoạn, mốc (thời gian, file đổi, ảnh) |
 | `HISTORY.md` · `history.jsonl` | Nhật ký: cổng duyệt, mốc, góp ý (NOTE), bài học (LEARN) |
 | `milestones/<mốc>-files.txt` | File đã đổi trong mốc (không git: theo thời điểm sửa) |
 | `art/<tên>/` | Brief + kết quả art theo yêu cầu |

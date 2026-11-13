@@ -1,0 +1,65 @@
+// Mẫu driver tự chơi cho GPlayTestKit. Chép vào 1 thư mục Editor của dự án, đổi tên file thành <Game>PlayTestDriver.cs rồi sửa phần TODO.
+// Chạy: python "<plugin>/scripts/unity_run.py" playtest --levels 1-3 --out D:/tmp/playtest [--video] [-- -fresh -lang vi]
+using System.Collections;
+using GPlay.TestKit;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class SamplePlayTestDriver : GPlayTestDriver
+{
+    // Edit mode, trước khi vào Play: mở scene bắt đầu (thường là scene đầu trong Build Settings).
+    public override void Prepare(GPlayTestContext ctx)
+    {
+        EditorSceneManager.OpenScene("Assets/Scenes/Loading.unity", OpenSceneMode.Single); // TODO đường dẫn scene
+        // -fresh: xoá hồ sơ người chơi để tutorial / mở khoá hiện như người chơi mới. TODO gọi hàm xoá save của game.
+    }
+
+    public override IEnumerator Run(GPlayTestContext ctx)
+    {
+        // 1. Luồng màn: chụp từng màn + kiểm UI (ảnh méo, chữ tràn, thiếu glyph).
+        yield return ctx.Wait(0.5f);
+        ctx.Shot("loading");
+        yield return WaitForScene("Home", 20f, ctx);                        // TODO tên scene
+        ctx.Shot("home");
+        ctx.UiCheck("home");
+
+        foreach (var level in ctx.Levels)
+        {
+            // 2. Vào level bằng đúng đường người chơi đi (bấm nút Play), hoặc gọi hàm nạp level của game.
+            // GPlayTestContext.Click(GameObject.Find("PlayButton"));        // TODO
+            yield return WaitForScene("Game", 20f, ctx);
+            yield return ctx.Wait(0.5f);
+            ctx.Shot(level + "_start");                                      // ảnh để ghép cạnh ảnh chuẩn (side_by_side.py)
+
+            // 3. Tự giải bằng ĐƯỜNG INPUT THẬT của game (hàm mà chạm / kéo gọi), theo solver hoặc kịch bản của level.
+            bool record = ctx.Flag("-video");
+            if (record) ctx.BeginVideo(level, 30);                           // quay cả quá trình giải (so chuyển động với clip gốc)
+            int moves = 0;
+            // foreach (var move in Solver.Solve(game.State))                // TODO
+            // {
+            //     game.Tap(move);                                           // hàm input thật, không set trạng thái tắt
+            //     while (game.Busy) yield return null;                      // chờ animation xong
+            //     moves++;
+            //     if (moves == 3) ctx.Shot(level + "_mid");
+            // }
+            yield return ctx.Wait(1f);
+            if (record) ctx.EndVideo();
+
+            ctx.Shot(level + "_end");
+            ctx.UiCheck(level + " end");                                     // popup thắng / thua đang hiện cũng được kiểm
+            bool won = false;                                                // TODO = game.State.IsWon
+            ctx.Result(level, won, moves + " moves");
+        }
+    }
+
+    static IEnumerator WaitForScene(string name, float timeout, GPlayTestContext ctx)
+    {
+        float end = Time.realtimeSinceStartup + timeout;
+        while (SceneManager.GetActiveScene().name != name)
+        {
+            if (Time.realtimeSinceStartup > end) { ctx.Fail("scene " + name + " did not load"); yield break; }
+            yield return null;
+        }
+    }
+}

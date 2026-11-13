@@ -1,6 +1,6 @@
 # Giao việc song song (Codex, Gemini / agy, subagent)
 
-Nhờ Codex / Gemini **vẽ art**: xem [art-on-demand.md](art-on-demand.md). Chạy task code bằng phiên claude CLI riêng: [cli-workers.md](cli-workers.md).
+Nhờ Codex / Gemini **vẽ art**: xem [art-on-demand.md](art-on-demand.md). Chia việc code trong 1 mốc: subagent cùng phiên ([pipeline.md](pipeline.md) mục "Giao subagent").
 File này nói về giao **sản xuất level hàng loạt**.
 
 ## Khi nào

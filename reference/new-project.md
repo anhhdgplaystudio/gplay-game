@@ -49,6 +49,7 @@ Dự án trắng (không base): tạo 3 scene Loading / Home / Gameplay, singlet
   và `orch.py config tests`.
 - Đổi `ProjectSettings` (identity, build settings) bằng editor script chạy `-executeMethod`, không sửa tay file `.asset` (guard chặn).
 - Repo chưa có git: đề xuất `git init` cục bộ (không cần remote) để hoàn tác được; người dùng không muốn → sao lưu `Assets Packages ProjectSettings` ra ổ tạm trước khi sửa.
+- Bộ tự chơi: chép `templates/unity/GPlayTestKit/` + viết driver từ `SampleDriver.cs.txt` ([autoplay-kit.md](autoplay-kit.md)); import TMP Essential Resources nếu chưa có.
 - Asset bên thứ ba / bóc từ game khác (để tham khảo hoặc làm hình tạm): 1 thư mục riêng `Assets/_Placeholder/<nguồn>/` + script `release_check` liệt kê thứ phải thay.
 
 ## 5. Thứ tự sau khi mở

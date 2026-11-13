@@ -12,7 +12,7 @@
 | 6. So với ảnh chuẩn | `scripts/side_by_side.py <ảnh chuẩn> <ảnh game> <ra.jpg> --grid 10` rồi Read | Sai bố cục / tỉ lệ / hướng / thiếu vật thể so với game tham khảo |
 | 7. Người chơi thử | Agent ghi các bước tái hiện, người dùng kiểm cảm giác / art | Feel, độ khó, UX |
 
-Bậc 1 thay bằng lệnh compile của dự án khi dùng asmdef riêng (ghi trong game-profile). Bậc 5–6 do **phiên chính** chạy: subagent / worker CLI không có quyền chạy Unity có GPU.
+Bậc 1 thay bằng lệnh compile của dự án khi dùng asmdef riêng (ghi trong game-profile). Bậc 5–6 do **phiên chính** chạy: subagent không có quyền chạy Unity có GPU.
 
 Luật:
 - **Báo kết quả có hình luôn kèm đường dẫn đầy đủ tới từng ảnh** (người dùng bấm mở được), không chỉ mô tả.
@@ -22,7 +22,11 @@ Luật:
 - Kiểm "mọi tên tồn tại" **chưa đủ**: phải xem ảnh.
 - Đổi tên / xoá symbol: grep toàn `Assets` (kể cả string trong json, `-executeMethod`).
 
-## Tự chơi batchmode (mẫu nên có từ dự án đầu)
+## Tự chơi batchmode
+
+**Dùng bộ kit có sẵn**: [autoplay-kit.md](autoplay-kit.md) (`templates/unity/GPlayTestKit` + `scripts/unity_run.py playtest`): chụp ảnh đúng cỡ,
+kiểm méo UI / chữ tràn / thiếu glyph, quay video, `report.json`. Dự án chỉ viết 1 driver. Editor đang mở → [unity-mcp.md](unity-mcp.md).
+Phần dưới là nguyên lý (khi phải tự viết).
 
 Mỗi cơ chế cung cấp **hàm tự giải** dùng chính đường input của game (hàm thả / bấm thật, không set trạng thái tắt).
 Tool test (editor script, gọi qua `-executeMethod`):
@@ -61,9 +65,8 @@ Không đạt mà không sửa được bằng dữ liệu → vấn đề ở l
 
 ## Khi Editor đang mở
 
-Unity 6 có Unity CLI / `unity-pipeline` (skill chính chủ: `npx skills add Unity-Technologies/skills`): recompile, `console get --level error`,
-`test run`, `capture game_view`, `script run --file <builder> --entry Class.Method`. Dùng khi người dùng không muốn đóng Editor.
-Lệnh treo → kiểm hộp thoại modal (`editor status`), báo người dùng.
+Dùng unity-mcp ([unity-mcp.md](unity-mcp.md)): chụp Game View, Play / Stop, đọc console, chạy C#, gọi menu dựng scene.
+Không chạy batchmode trên project đang mở. Lệnh treo → kiểm hộp thoại modal trong Editor, báo người dùng.
 
 ## Báo cáo cuối
 

@@ -10,12 +10,12 @@ intake → **nghiên cứu kỹ game tham khảo** (mổ video, teardown luật 
 `learn` (thêm luật / bài học). Skill kiến thức `gplay-game` (cơ chế, pipeline level, UI, localization, phát hành) Claude tự dùng.
 
 Art không phải bước cố định: vẽ bằng Codex / Gemini khi người dùng yêu cầu (`reference/art-on-demand.md`).
-Chạy task bằng phiên claude CLI riêng (song song, worktree) là tuỳ chọn (`reference/cli-workers.md`).
+Không mở phiên claude CLI riêng hay git worktree cho từng task: việc tách được thì giao subagent trong cùng phiên.
 
 ## Cài
 
 - Máy tác giả: thư mục này nằm ở `~/.claude/skills/gplay-game/`, tự nạp thành `gplay-game@skills-dir` (sửa là có hiệu lực từ phiên sau / `/reload-plugins`).
-- Máy khác: chép thư mục này vào `~/.claude/skills/gplay-game/`. Cần Python 3 + `opencv-python`, `pillow` (mổ video, ghép ảnh). git và claude CLI chỉ cần cho worker CLI.
+- Máy khác: chép thư mục này vào `~/.claude/skills/gplay-game/`. Cần Python 3 + `opencv-python`, `pillow` (mổ video, ghép ảnh). git không bắt buộc (có thì hoàn tác được).
 
 ## Hook guard
 
@@ -23,6 +23,6 @@ Chặn sửa tay YAML Unity, sửa `.meta`, đọc file bí mật, lệnh nguy h
 
 ## Cấu trúc
 
-`SKILL.md` (skill kiến thức) · `skills/*` (6 lệnh) · `reference/` · `templates/` (plan, research/, art-brief, tasks/, AGENTS, game-profile) ·
-`scripts/` (orch.py sổ trạng thái + worker CLI, study_video.py, side_by_side.py, guard.py, check_build.py, check_dev.py, compose_dev.py) ·
+`SKILL.md` (skill kiến thức) · `skills/*` (6 lệnh) · `reference/` · `templates/` (plan, research/, art-brief, AGENTS, game-profile, unity/GPlayTestKit) ·
+`scripts/` (orch.py sổ trạng thái, study_video.py, side_by_side.py, unity_run.py, guard.py, check_build.py, check_dev.py, compose_dev.py) ·
 `hooks/hooks.json` · `RULES.md` + `guard.json` (luật chung) · `LEARNINGS.md` · `CHANGELOG.md` · `evals/`.

@@ -1,5 +1,21 @@
 # Changelog
 
+- 2026-11-13 (0.4.0): bỏ hẳn worker CLI (mỗi task 1 phiên claude + git worktree): người dùng không muốn nhiều worktree / phiên, tính năng chưa từng
+  chạy thật và chiếm nửa `orch.py`. Xoá lệnh `run` / `branch` / `merge` / `open` / `done` / `accept`, `reference/cli-workers.md`, `templates/tasks/`.
+  `orch.py` còn là sổ trạng thái (init, phase, log, ms, status, report, history, config, test), ~440 dòng (trước ~1400). Việc song song: subagent cùng phiên,
+  vùng file tách biệt (pipeline.md mục "Giao subagent"). Cần lại thì lấy từ lịch sử git (bản 0.3.0).
+
+- 2026-11-13 (0.3.0): bổ sung 3 mục học từ các repo game agent khác.
+  - **Bộ tự chơi dùng chung** `templates/unity/GPlayTestKit/` (asmdef Editor): `GPlayCapture` (chụp camera + UI Overlay đúng cỡ),
+    `GPlayUiCheck` (ảnh méo, chữ tràn, thiếu glyph, font dự phòng), `GPlayTest` (chạy driver trong Play mode từ `-executeMethod`, report.json,
+    lọc lỗi nội bộ Editor), mẫu driver `SampleDriver.cs.txt`. `scripts/unity_run.py` compile / exec / playtest / video: tự tìm Unity theo
+    ProjectVersion, dừng khi Editor đang mở project, báo thiếu license, quá giờ chỉ tắt Unity do chính nó mở. `reference/autoplay-kit.md`.
+  - **Quay video lúc tự chơi**: `ctx.BeginVideo` / `EndVideo` dùng `Time.captureFramerate` (khung nào cũng chụp, thời gian game khớp), ghép mp4.
+  - **unity-mcp** (CoplayDev v10.3.0) làm tuỳ chọn khi Editor đang mở: `reference/unity-mcp.md` (cài, bẫy uvx ngoài PATH / claude CLI path,
+    tool dùng nhiều, ảnh MCP ghi vào Assets/Screenshots, execute_code treo khi đang Play).
+  - Đã kiểm trên dự án Unity 6000.3 trống: chụp ảnh, bắt méo 300 %, chữ VI tràn, thiếu glyph CJK, video 30 khung đúng 2,00 đơn vị / 1 s;
+    unity-mcp trên dự án thật: chụp Game View, Play / Stop, console, execute_code (edit mode).
+
 - 2026-11-13 (0.2.0): làm lại sau dự án thử đầu tiên chạy trọn pipeline (33 task, 49 lần chạy CLI: 21 lần đầu "partial", 20 task phải đóng tay,
   168 lệnh bị từ chối quyền, plan viết lại 4 lần vì nghiên cứu hời hợt).
   - **Nghiên cứu là trọng tâm**: lệnh `research` + `reference/research.md` + mẫu `templates/research/` (teardown luật có nhãn bằng chứng, visual-spec:

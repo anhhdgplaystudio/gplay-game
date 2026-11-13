@@ -84,7 +84,7 @@
   {
     "query": "Plan ok, làm đi.",
     "expected_behavior": [
-      "Ghi G2, bắt đầu mốc M1 level mẫu bằng orch.py ms M1 start, làm ngay trong phiên chính (không orch.py run từng task)",
+      "Ghi G2, bắt đầu mốc M1 level mẫu bằng orch.py ms M1 start, làm ngay trong phiên chính",
       "Tự chạy Unity tự chơi + chụp ảnh, Read ảnh, ghép side_by_side với ảnh chuẩn",
       "orch.py ms M1 done kèm --evidence; báo người dùng đường dẫn đầy đủ từng ảnh",
       "Hỏi cổng GS; không làm M2 khi chưa được duyệt"
@@ -108,11 +108,11 @@
     ]
   },
   {
-    "query": "Chạy song song mấy việc logic này qua đêm bằng claude CLI.",
+    "query": "Mốc này có phần luật chơi và phần tool level độc lập, làm song song cho nhanh.",
     "expected_behavior": [
-      "Đọc reference/cli-workers.md; kiểm dự án có git, không có thì nói rõ không song song được",
-      "Viết file task có test / verify / evidence, chạy orch.py run --parallel",
-      "Task ở trạng thái review: Read ảnh rồi orch.py accept hoặc run --fix; không dùng open / done để lách"
+      "Gọi 2 subagent trong cùng 1 lượt, vùng file không chồng nhau, đề tự đủ (mục tiêu, file đọc, lệnh kiểm, không chạy Unity)",
+      "Không tạo git worktree, không mở phiên claude CLI riêng",
+      "Phiên chính đọc lại kết quả, chạy lại lệnh kiểm + compile Unity rồi mới làm phần có hình"
     ]
   },
   {

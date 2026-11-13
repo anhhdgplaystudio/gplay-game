@@ -28,7 +28,7 @@ start ─G0→ research ─G1→ plan ─G2→ build M1 "level mẫu" ─GS→ b
   (mỗi luật gắn frame bằng chứng) + spec hình và luồng màn. Luật lõi còn `[suy luận]` thì chưa được lập plan. Không hỏi người dùng luật của game gốc khi video trả lời được.
 - **Level mẫu trước, mọi thứ khác sau** (cổng GS): 1 level chơi đúng luật, màn chơi ghép cạnh ảnh chuẩn (`scripts/side_by_side.py`), người dùng duyệt rồi mới làm meta / UI / nội dung.
 - **Phiên chính tự làm từng mốc** (code, chạy Unity, xem ảnh); phần lớn + độc lập giao subagent trong cùng phiên. Không mặc định mở phiên claude CLI riêng cho từng task
-  (tuỳ chọn khi người dùng yêu cầu song song / qua đêm và có git: [cli-workers.md](reference/cli-workers.md)).
+  và không dùng git worktree (cách chia việc: pipeline.md mục "Giao subagent").
 - **Art theo yêu cầu**: mặc định hình tạm đúng kích thước + bố cục; người dùng bảo vẽ thì dùng Codex / Gemini ([art-on-demand.md](reference/art-on-demand.md)).
 - Mỗi mốc: `scripts/orch.py ms` ghi thời gian, file đổi, ảnh bằng chứng; báo người dùng kèm **đường dẫn đầy đủ từng ảnh** và ước lượng thời gian mốc kế.
 - Mọi câu hỏi cho người dùng dùng tool **AskUserQuestion**, không liệt kê thành chữ trong chat.
@@ -90,8 +90,9 @@ Mặc định **gọn nhẹ**: không viết GDD dài; tài liệu duy nhất ph
 - `scripts/check_dev.py <thư mục dev>`: kiểm thư mục art xuất (cặp png / cor, kích thước bội 4, mapping.json).
 - `scripts/compose_dev.py <thư mục dev> <out.png>`: ghép ảnh cảnh từ thư mục art để kiểm bằng mắt, không cần Unity.
 - `scripts/check_build.py <csproj> [file.cs ...]`: build kiểm tra, tự thêm file `.cs` mới vào bản csproj tạm.
+- `templates/unity/GPlayTestKit/` + `scripts/unity_run.py` (compile / exec / playtest / video): bộ tự chơi dùng chung, chụp ảnh, kiểm méo UI /
+  chữ tràn / thiếu glyph, quay video ([autoplay-kit.md](reference/autoplay-kit.md)). Editor đang mở: [unity-mcp.md](reference/unity-mcp.md).
 - `scripts/study_video.py <video> <thư mục ra> [--clip t0 t1]`: mổ video gameplay (sheet frame đánh số, điểm cắt cảnh, bảng màu, đoạn frame liên tiếp).
 - `scripts/side_by_side.py <ảnh mẫu> <ảnh game> <ra.jpg> [--grid 10] [--blend]`: ghép ảnh so, lưới % để đọc tỉ lệ bố cục.
-- `scripts/orch.py`: sổ trạng thái + lịch sử `.game/` (init / phase / log / ms / status / report / history / config / test) và worker CLI tuỳ chọn
-  (branch / run / accept / merge / open / done), xem pipeline.md + cli-workers.md.
-- `templates/plan.md` (theo mốc), `templates/research/` (teardown, visual-spec, base), `templates/art-brief.md`, `templates/tasks/` (T00 code, V00 review: chỉ cho worker CLI).
+- `scripts/orch.py`: sổ trạng thái + lịch sử `.game/` (init / phase / log / ms / status / report / history / config / test), xem pipeline.md.
+- `templates/plan.md` (theo mốc), `templates/research/` (teardown, visual-spec, base), `templates/art-brief.md`.
