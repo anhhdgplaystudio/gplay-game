@@ -1,14 +1,19 @@
 # Nghiên cứu game tham khảo (bước quan trọng nhất)
 
-Mục tiêu: trước khi lập plan, phiên chính phải **tự nhìn thấy** game gốc chơi thế nào và trông ra sao, ghi thành 2 tài liệu có bằng chứng:
-`.game/research/teardown.md` (luật chơi) và `.game/research/visual-spec.md` (hình + luồng màn). Sai ở bước này = viết lại code về sau.
+Mục tiêu: trước khi lập plan, phiên chính phải **tự nhìn thấy** game gốc chơi thế nào và trông ra sao, ghi thành tài liệu có bằng chứng:
+`.game/research/teardown.md` (luật chơi), `visual-spec.md` (hình + luồng màn), `ref-level.md` (level chuẩn chép từ game gốc) và
+`visual-check.md` (bảng nghiệm thu hình: thước đo duy nhất để nói "khớp mẫu"). Sai ở bước này = viết lại code về sau.
+
+Luật thì dễ đúng, **hình mới là chỗ bị trả về nhiều vòng**: người dùng so từng chi tiết với game gốc, còn tả bằng lời + vài dải % thì không bắt được chi tiết nào.
+Vì vậy phần hình phải ra **số đo từng vật thể** trước khi code, không phải sau khi bị chê.
 
 Phiên chính tự làm (cần xem ảnh, cần hỏi người dùng). Chỉ giao subagent phần đọc nhiều file: thống kê dữ liệu level / config, đọc base (`base.md`).
 
 `<tmp>` = ổ tạm ngoài repo (vd `D:/tmp/<slug>`). `<PLUGIN>` = thư mục plugin.
 
 ## Mục lục
-1. Thu nguồn · 2. Mổ video · 3. Teardown luật chơi · 4. Spec hình + luồng màn · 5. Dữ liệu có sẵn · 6. Đọc base · 7. Cổng G1 · Lỗi hay gặp
+1. Thu nguồn · 2. Mổ video · 3. Teardown luật chơi · 4. Spec hình + luồng màn · 4b. Level chuẩn · 4c. Bảng nghiệm thu hình ·
+5. Dữ liệu có sẵn · 6. Đọc base · 7. Cổng G1 · Lỗi hay gặp
 
 ## 1. Thu nguồn (đủ rồi mới phân tích)
 
@@ -28,6 +33,11 @@ python -m pip install --quiet --target <tmp>/pytools yt-dlp
 PYTHONPATH=<tmp>/pytools python -m yt_dlp --no-playlist -f "bv*[height<=1080]+ba/b[height<=1080]/b" -o "<tmp>/ref/%(id)s.%(ext)s" "ytsearch3:<tên game> gameplay walkthrough"
 ```
 (PowerShell: `$env:PYTHONPATH='<tmp>/pytools'; python -m yt_dlp ...`.) Chọn video quay màn hình thật, không phải trailer / quảng cáo dựng.
+
+**Độ nét quyết định phần hình**: mở `study.json` xem kích thước khung game sau khi cắt viền. Luật chơi đọc được ở video nhỏ, nhưng
+ảnh chuẩn + số đo hình phải lấy từ khung **cao ≥ 1080 px, ≥ 30 fps** (soi chuyển động: 60 fps nếu có). Video đầu tiên tải về nhỏ hơn →
+tìm tiếp ngay ở bước này (`ytsearch10`, thêm `-f "bv*[height>=1080]"`), đừng đợi người dùng chê mới đi tìm. Không có → ghi rõ ở đầu visual-spec
+"nguồn cao <N> px" và hỏi người dùng xin ảnh chụp màn hình thật / file quay màn hình.
 Không tải được → hỏi người dùng xin file video hoặc quay màn hình; **không** lập luật từ ảnh tĩnh rồi đi tiếp.
 
 ## 2. Mổ video
@@ -70,7 +80,8 @@ Mẫu: `<PLUGIN>/templates/research/teardown.md`. Nguyên tắc:
 Mẫu: `<PLUGIN>/templates/research/visual-spec.md`. Đây là thứ để so khi nghiệm thu, nên phải đo, không tả chung chung.
 
 - **Ảnh chuẩn**: chọn 1 frame cho mỗi màn (gameplay giữa level, home, loading, thắng, thua, popup), chép vào `<tmp>/ref/golden/`.
-  Người dùng gửi ảnh nào → ảnh đó là chuẩn.
+  Người dùng gửi ảnh nào → ảnh đó là chuẩn. Ảnh chuẩn gameplay lấy từ **level chuẩn** (mục 4b): 1 frame đầu level (chưa thao tác),
+  1 frame giữa hành động, 1 frame cuối level; chép bản gốc không nén lại (PNG từ frame gốc, không lấy từ sheet thu nhỏ).
 - **Luồng màn**: sơ đồ Loading → Home → Game → Thắng / Thua → ... (lấy từ các frame `CUT`), ghi cách chuyển (fade, trượt).
 - **Bố cục màn chơi**: kẻ lưới lên ảnh chuẩn để đọc tỉ lệ:
   `python "<PLUGIN>/scripts/side_by_side.py" <frame> <frame> <tmp>/ref/grid.jpg --grid 10` → ghi mỗi vùng chiếm từ % nào tới % nào theo chiều cao
@@ -81,6 +92,27 @@ Mẫu: `<PLUGIN>/templates/research/visual-spec.md`. Đây là thứ để so kh
 - **Chuyển động + feel** (từ `--clip`): mỗi sự kiện: cái gì động, đường đi, thời lượng ước tính, hiệu ứng kèm (nảy, hạt, rung, số bay).
 - **UI**: danh mục nút / thanh / popup từng màn, vị trí, kiểu chữ (đậm, viền), màu chủ đạo (lấy từ `palette.png`).
 - **Nền / môi trường**: nền trơn hay có hoạ tiết / chia ô, có bóng đổ không.
+
+## 4b. Level chuẩn → `.game/research/ref-level.md`
+
+Level mẫu của dự án **là 1 level của game gốc chép lại**, không tự nghĩ level mới: chỉ khi 2 ảnh cùng nội dung mới so được cỡ, mật độ, màu, bố cục.
+- Chọn level có frame đầu level rõ + có clip đủ các chuyển động chính (thường level 2–5: đã hết tutorial, chưa có cơ chế phụ).
+- Chép **dữ liệu** của nó từ frame đầu level: lưới / vị trí từng vật, màu từng ô (ký hiệu + hex), số ghi trên vật, thứ tự hàng chờ, số lượng từng loại.
+  Đếm trên frame gốc phóng to (crop từng phần), kiểm tổng (vd tổng ô mỗi màu = tổng sức chứa cùng màu).
+- Ghi vào `ref-level.md`: nguồn (video, giây), ảnh chuẩn 3 thời điểm, dữ liệu ở dạng nạp thẳng được vào game (lưới ký tự / json), phần nào không đọc được (ghi `?` + cách kiểm).
+- Level này chỉ để **dựng + so**; level phát hành tự thiết kế (ghi ở teardown mục "Không đem vào bản phát hành").
+
+## 4c. Bảng nghiệm thu hình → `.game/research/visual-check.md`
+
+Mẫu: `<PLUGIN>/templates/research/visual-check.md`. Viết cột **Mẫu** ngay ở bước research; build chỉ việc điền cột Game.
+1. Mỗi vật thể ở mục 4 → các dòng: tâm (x %, y %) · bề ngang (% màn) · màu (hex đọc từ frame) · hình dáng (bo góc, viền, độ dày, chi tiết) ·
+   số lượng + khoảng cách · lớp che. Mỗi sự kiện ở mục 5 → đường đi · đội hình · thời lượng (đếm frame) · thứ tự.
+2. Đo bằng crop phóng to, không ước lượng trên ảnh toàn màn:
+   `python "<PLUGIN>/scripts/side_by_side.py" <chuẩn> <chuẩn> <tmp>/check/ref_<mã>.jpg --crop x0,y0,x1,y1 --grid 10`.
+3. **Soát theo vùng** (bảng D của mẫu): chia ảnh chuẩn 3 × 4 ô, crop + Read từng ô, liệt kê mọi thứ nhìn thấy; thứ chưa có dòng → thêm.
+   Bước này bắt các thứ hay sót: viền, gờ nổi, vạch kẻ, nhãn nhỏ, bóng, mái che, hoạ tiết nền.
+4. Có asset gốc (mesh, sprite, shader) → dựng lại từng vật riêng lẻ để soi kích thước thật, điểm gốc, hướng "mặt trước", rồi ghi vào bảng.
+5. Số dòng ít hơn ~4 × số vật thể + 2 × số sự kiện → bảng còn thiếu, chưa được hỏi G1.
 
 ## 5. Dữ liệu có sẵn (khi người dùng có asset / config game gốc)
 
@@ -101,9 +133,15 @@ Trước khi hỏi người dùng:
 2. Viết `.game/questions.md`: chỉ những quyết định thật sự của người dùng (phạm vi bản đầu, khác biệt so với gốc, ai làm art, tên / package id),
    mỗi câu 2–4 phương án có khuyến nghị. **Không hỏi người dùng luật của game gốc** khi video trả lời được.
 3. Trình **thẻ đối chiếu**: 5–8 dòng luật lõi + bố cục + luồng màn, mỗi dòng kèm đường dẫn frame bằng chứng, để người dùng sửa chỗ hiểu sai.
-4. Hỏi bằng AskUserQuestion; người dùng xác nhận → `O log G1 "<tóm tắt>"`, `O phase plan`.
+4. Phần hình đã đủ: ảnh chuẩn cao ≥ 1080 px (hoặc đã ghi rõ là không có), `ref-level.md` có dữ liệu level chuẩn, `visual-check.md` có cột Mẫu
+   cho mọi vật thể + sự kiện và đã soát theo vùng. Đưa người dùng đường dẫn ảnh chuẩn + bảng, hỏi 1 câu: **"Nhìn ảnh chuẩn, điều gì sai là bạn thấy ngay?"**
+   (phương án lấy từ các nhóm dòng của bảng, multiSelect + Other) → mỗi ý thêm 1 dòng `[người dùng G1]`. Đây là lúc rẻ nhất để biết người dùng soi cái gì.
+5. Hỏi bằng AskUserQuestion; người dùng xác nhận → `O log G1 "<tóm tắt>"`, `O phase plan`.
 
-Người dùng sửa 1 luật sau G1 → cập nhật teardown / visual-spec **trước**, rồi mới sửa plan / code; ghi `O log NOTE`.
+Người dùng sửa 1 luật / 1 điểm hình sau G1 → `O fb add` lưu nguyên văn, cập nhật teardown / visual-spec / visual-check **trước**, rồi mới sửa plan / code.
+
+**Nghiên cứu lại** (cổng GV / GS bị trả về lần 2 về hình): không vá tiếp từng mục. Tìm nguồn nét hơn nếu nguồn < 1080 px, làm lại mục 4c cho **cả màn**
+(đặc biệt bước soát theo vùng), so bảng mới với bảng cũ để thấy mình đã sót loại chi tiết nào, trình bảng cho người dùng rồi mới quay lại build.
 
 ## Lỗi hay gặp (đã gặp thật)
 
@@ -113,3 +151,6 @@ Người dùng sửa 1 luật sau G1 → cập nhật teardown / visual-spec **t
 - Bỏ qua chuyển động (vật vào / ra đường nào) vì chỉ xem frame rời.
 - Coi vật thể là "khối" trong khi gốc là nhân vật có mặt / model riêng → người dùng chê "chỉ là khối vuông".
 - Chỉ phân tích màn chơi, quên Loading / Home / popup → thiếu cả luồng màn trong plan.
+- Làm visual-spec từ video 374 × 854 trong 12 phút, danh sách so chỉ 5 dòng chung chung → level mẫu bị trả về 5 vòng; video 1080p chỉ đi tìm sau lần chê thứ 2.
+- Level mẫu tự vẽ (khác level trong ảnh chuẩn) → không so được 1 : 1, mỗi vòng người dùng lại thấy một chỗ lệch mới.
+- Đã ghi đúng trong spec ("chỉ hàng cuối lộ chân") nhưng không có dòng nghiệm thu nào kiểm → game vẫn sai mà báo "khớp".

@@ -33,4 +33,13 @@ Mỗi dòng: bài học · nguồn (dự án / level) · ngày. Bài học chỉ
 - Báo chi phí bằng USD làm người dùng gói tháng hiểu nhầm là tiền phải trả; ghi rõ "quy đổi" · 2026-11
 - Người dùng phải hỏi "bao giờ xong", "tiến độ": báo ước lượng khi bắt đầu mốc và thời gian thực khi xong · 2026-11
 - Script dọn tiến trình khi quá giờ mà tắt theo tên (`taskkill /IM Unity.exe`) đã tắt luôn Editor người dùng đang mở; chỉ tắt PID do chính mình khởi chạy · 2026-11
+- Level mẫu bị trả về 5 vòng dù plugin đã có dòng nhắc "phân tích hình tới từng vật thể": dòng nhắc không đủ, phải có bảng số đo từng vật thể (visual-check) viết trước khi code và script đếm dòng chưa đạt · dự án clone 3D thứ 2 · 2026-11
+- Tự ghi mốc "done" + "bố cục khớp ảnh chuẩn" khi mới đo 2 dải %, báo cáo ghi "Còn tồn: không" lúc người dùng chưa duyệt → người dùng mất lòng tin vào báo cáo; tự kiểm xong chỉ là `review` · 2026-11
+- Visual-spec làm trong 12 phút từ video 374 × 854; video 1080p chỉ tìm sau lần chê thứ 2 → tìm nguồn cao ≥ 1080 px ngay ở bước thu nguồn · 2026-11
+- Level mẫu tự vẽ (14 ô, 4 màu) đem so với level khác của game gốc (18 ô, 8 màu): không so được cỡ / mật độ / màu → level mẫu phải là level của game gốc chép lại · 2026-11
+- Ghi góp ý bằng 1 dòng tóm tắt kèm suy diễn ("tranh to quá" → "luôn rộng 78 %") → vòng sau bị chê ngược lại; người dùng gửi spec 9 mục, nhật ký chỉ giữ 1 dòng, làm được 6 mục → lưu nguyên văn + tách mục + hỏi lại mục 2 cách hiểu · 2026-11
+- Mỗi vòng chỉ vá đúng mục vừa bị chê, không soát lại cả màn → người dùng thành người phân tích hộ; chê lần 2 cùng loại thì quay lại nghiên cứu cả màn · 2026-11
+- Ảnh ghép toàn màn thu nhỏ trông "gần giống" trong khi crop vùng ô đỗ cho thấy lệch vị trí từng xe, độ dày gờ, nét vạch → so chi tiết bằng crop cùng vùng · 2026-11
+- Gộp luật + bố cục + art + chuyển động + HUD vào 1 mốc, người dùng chỉ thấy hình sau ~30 phút code → tách khung hình tĩnh (GV) khỏi chơi được (GS), gửi ảnh nháp sớm · 2026-11
+- 37 hằng số bố cục rải trong 1 file controller 750 dòng: mỗi lần chỉnh 1 con số phải sửa code + chạy lại cả vòng → gom số bố cục vào 1 file dữ liệu · 2026-11
 - `pip install uv` có thể đặt `uvx.exe` ngoài PATH (thư mục Scripts của user) → tool cần `uvx` báo "not recognized"; kiểm `pip show -f` · 2026-11

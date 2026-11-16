@@ -3,12 +3,19 @@
 Lệnh (chạy ở gốc repo dự án):
   orch.py init [--slug ten-game] [--no-guard]    tạo .game/ (intake, config, state, lịch sử) + .claude/guard.json
   orch.py phase <tên>                            chuyển giai đoạn: intake | research | plan | slice | build | report | done
-  orch.py log <mã> "<nội dung>"                  ghi 1 sự kiện (cổng duyệt G0 G1 G2 GS G3, PLAN, NOTE, LEARN, ART).
+  orch.py log <mã> "<nội dung>"                  ghi 1 sự kiện (cổng duyệt G0 G1 G2 GV GS G3, PLAN, NOTE, LEARN, ART).
                                                  nội dung "-" = đọc stdin (UTF-8); --file f = đọc từ file (giữ dấu tiếng Việt)
   orch.py ms                                     bảng mốc (trạng thái, thời gian, file đổi, ảnh bằng chứng)
   orch.py ms M1 start "<tiêu đề>"                bắt đầu 1 mốc
-  orch.py ms M1 done [--note "..."] [--evidence a.png b.png] [--fail]
-                                                 chốt mốc: ghi file đã đổi từ lúc start, ảnh bằng chứng, sinh lại REPORT.md
+  orch.py ms M1 review [--note "..."] [--evidence a.png b.png]
+                                                 tự kiểm xong, CHỜ người dùng duyệt: ghi file đổi, ảnh, in các dòng bảng nghiệm thu chưa đạt
+  orch.py ms M1 done [--note "..."] [--evidence ...] [--fail]
+                                                 chốt mốc. Bị từ chối khi: bảng nghiệm thu của mốc còn dòng chưa đạt, còn góp ý mở,
+                                                 hoặc mốc có cổng duyệt (config gates) mà chưa ghi cổng sau lần start gần nhất
+  orch.py fb add [--ms M1] "<nguyên văn>" [--attach a.png ...]
+                                                 lưu NGUYÊN VĂN góp ý của người dùng vào .game/feedback/NN.md ("-" = stdin, --file f)
+  orch.py fb                                     danh sách góp ý + số mục còn mở
+  orch.py check [--ms M1]                        tóm tắt bảng nghiệm thu (.game/research/visual-check.md) + góp ý còn mở
   orch.py status                                 giai đoạn, cổng đã qua, mốc
   orch.py report                                 sinh .game/REPORT.md
   orch.py history [--event E] [--file F] [--since 2026-11-01] [-n 40]
@@ -16,6 +23,8 @@ Lệnh (chạy ở gốc repo dự án):
   orch.py test [--cmd "<lệnh>"]                  chạy lệnh test chung (config tests) + lệnh thêm, ghi log
 
 Lịch sử: .game/history.jsonl (máy) + .game/HISTORY.md (người). File đổi từng mốc: .game/milestones/<mốc>-files.txt.
+Bảng nghiệm thu: dòng dữ liệu có ô đầu là mã (V1, M3...), ô 2 là mốc, ô cuối là kết quả (đạt | chủ ý | lệch | chưa đo).
+Góp ý: bảng "Tách mục" trong .game/feedback/NN.md, ô đầu là số, ô cuối là trạng thái (mở | hỏi lại | xong | không làm).
 """
 import argparse
 import datetime as dt
@@ -42,7 +51,31 @@ DEFAULT_CONFIG = {
     "tests": [],                # lệnh test chung (compile, test logic): orch.py test
     "track_dirs": ["Assets", "Packages", "ProjectSettings", "Tools"],  # không git: quét mtime ở đây để biết file đã đổi
     "ignore": ["*.pyc", "*.meta", ".DS_Store", "Thumbs.db"],
+    "gates": {},                # mốc → cổng người dùng phải duyệt trước khi `ms done` (init ghi {"M1": "GV", "M2": "GS"})
 }
+
+NEW_GATES = {"M1": "GV", "M2": "GS"}
+VCHECK = ".game/research/visual-check.md"
+FB_DIR = ".game/feedback"
+
+FEEDBACK = """# Góp ý {num} — {ms} · {ts}
+
+## Nguyên văn (không sửa, không tóm tắt)
+
+{quote}
+
+Ảnh / file kèm: {attach}
+
+## Tách mục
+
+Mỗi ý của người dùng 1 dòng. Ý có ≥ 2 cách hiểu, hoặc cách hiểu sẽ thành quy tắc chung (không chỉ 1 con số) → `hỏi lại` kèm ảnh crop trước khi sửa.
+
+| # | Trích nguyên văn | Tôi hiểu là (diễn giải của Claude) | Dòng bảng nghiệm thu / spec đã sửa | Ảnh crop sau sửa | Trạng thái |
+|---|---|---|---|---|---|
+| 1 | | | | | mở |
+
+Trạng thái: `mở` · `hỏi lại` · `xong` (đã sửa + đã xem ảnh crop) · `không làm` (người dùng đồng ý bỏ).
+"""
 
 INTAKE = """# Intake — điền rồi báo Claude
 
@@ -192,7 +225,75 @@ def ms_rows(s):
 
 
 def gates_passed(hist):
-    return sorted({h["event"].upper() for h in hist if re.fullmatch(r"G[0-9S]", h["event"].upper())})
+    return sorted({h["event"].upper() for h in hist if re.fullmatch(r"G[0-9SV]", h["event"].upper())})
+
+
+def md_rows(path, id_re):
+    """Dòng dữ liệu của các bảng markdown trong file: ô đầu khớp id_re. Trả list các list ô."""
+    rows = []
+    for line in (rd(path, "") or "").splitlines():
+        t = line.strip()
+        if not t.startswith("|"):
+            continue
+        cells = [c.strip().strip("`*") for c in t.strip("|").split("|")]
+        if cells and re.fullmatch(id_re, cells[0]):
+            rows.append(cells)
+    return rows
+
+
+def vcheck(ms_id=None):
+    """Bảng nghiệm thu: (tổng số dòng, [dòng chưa đạt: (mã, mốc, nội dung, kết quả)]). ms_id: chỉ tính dòng của mốc đó."""
+    total, bad = 0, []
+    for c in md_rows(VCHECK, r"[A-Za-z]{1,3}[0-9]+"):
+        if len(c) < 4 or (ms_id and c[1].upper() != ms_id.upper()):
+            continue
+        total += 1
+        res = c[-1].lower() or "chưa đo"
+        if not res.startswith(("đạt", "chủ ý")):
+            bad.append((c[0], c[1], c[2], res))
+    return total, bad
+
+
+def fb_open():
+    """Góp ý: [(file, số mục mở, tổng mục)]. File chưa tách mục (bảng trống) tính là còn mở."""
+    out = []
+    for p in sorted(glob.glob(FB_DIR + "/*.md")):
+        filled = [c for c in md_rows(p, r"[0-9]+(\.[0-9]+)?") if any(c[1:-1])]
+        n_open = sum(1 for c in filled if not c[-1].lower().startswith(("xong", "không làm")))
+        out.append((p.replace(os.sep, "/"), n_open if filled else 1, len(filled)))
+    return out
+
+
+def check_lines(ms_id=None):
+    """Các dòng tóm tắt việc còn tồn về hình + góp ý (dùng cho ms review / done, status, report)."""
+    L = []
+    if os.path.exists(VCHECK):
+        total, bad = vcheck(ms_id)
+        L.append(f"Bảng nghiệm thu{' ' + ms_id if ms_id else ''}: {total - len(bad)}/{total} dòng đạt ({VCHECK})")
+        L += [f"  chưa đạt {i} [{m}] {what}: {res}" for i, m, what, res in bad[:40]]
+    else:
+        L.append(f"Chưa có bảng nghiệm thu {VCHECK} (viết ở bước research, mẫu templates/research/visual-check.md)")
+    for p, n_open, n in fb_open():
+        if n_open:
+            L.append(f"Góp ý còn mở: {p} (" + (f"{n_open}/{n} mục" if n else "chưa tách mục") + ")")
+    return L
+
+
+def blockers(ms_id, m, c, hist):
+    """Lý do chưa được `ms done`."""
+    out = []
+    if os.path.exists(VCHECK):
+        _, bad = vcheck(ms_id)
+        if bad:
+            out.append(f"bảng nghiệm thu còn {len(bad)} dòng chưa đạt của {ms_id}: " + ", ".join(b[0] for b in bad[:20]))
+    opened = [p for p, n_open, _ in fb_open() if n_open]
+    if opened:
+        out.append("còn góp ý mở: " + ", ".join(opened))
+    gate = (c.get("gates") or {}).get(ms_id)
+    if gate and not any(h["event"].upper() == gate.upper() and h["ts"] >= (m.get("started") or "") for h in hist):
+        out.append(f"mốc này cần người dùng duyệt cổng {gate}: `ms {ms_id} review`, đưa ảnh cho người dùng; "
+                   f"được duyệt thì `log {gate} \"<lời duyệt nguyên văn>\"` rồi mới `ms {ms_id} done`")
+    return out
 
 
 # ---------------------------------------------------------------- lệnh
@@ -203,6 +304,8 @@ def cmd_init(a):
     c["slug"] = a.slug or c["slug"] or re.sub(r"[^a-z0-9]+", "-", os.path.basename(os.getcwd()).lower()).strip("-")
     has_git = os.path.isdir(".git")
     c["git"] = has_git
+    if not os.path.exists(f"{G}/state.json") and not c.get("gates"):
+        c["gates"] = dict(NEW_GATES)
     if has_git:
         ign = rd(".gitignore", "") or ""
         if not re.search(r"^/?\.game/?\s*$", ign, re.M):
@@ -269,25 +372,66 @@ def cmd_ms(a):
         save_state(s)
         history("ms_start", f"{a.id} {m['title']}", milestone=a.id)
         print(f"Bắt đầu {a.id}: {m['title']}")
-    elif a.action == "done":
+    elif a.action in ("review", "done"):
         if not m.get("started"):
             raise SystemExit(f"{a.id} chưa start")
+        status = "review" if a.action == "review" else ("failed" if a.fail else "done")
+        if status == "done":
+            why = blockers(a.id, m, c, read_history())
+            if why:
+                raise SystemExit(f"Chưa chốt được {a.id}:\n- " + "\n- ".join(why) +
+                                 f"\nTự kiểm xong mà chưa được duyệt → `ms {a.id} review`. Mốc hỏng → `ms {a.id} done --fail`.")
         files = changed_files(dt.datetime.fromisoformat(m["started"]).timestamp(), c)
         ev, missing = expand_evidence(a.evidence)
         if missing:
             print("Cảnh báo: không thấy bằng chứng: " + ", ".join(missing))
         old = m.get("evidence") or []
-        m.update({"status": "failed" if a.fail else "done", "ended": now(), "note": a.note or m.get("note", ""),
+        m.update({"status": status, "ended": now(), "note": a.note or m.get("note", ""),
                   "files": files, "evidence": old + [p for p in ev if p not in old]})
         save_state(s)
         wr(f"{G}/milestones/{a.id}-files.txt", "\n".join(files) + "\n")
-        history("ms_done", f"{a.id} → {m['status']}: {m['note']}", milestone=a.id, files=len(files), evidence=m["evidence"][:12])
+        history("ms_review" if status == "review" else "ms_done", f"{a.id} → {status}: {m['note']}", milestone=a.id,
+                files=len(files), evidence=m["evidence"][-12:])
         write_report(quiet=True)
         print(f"{a.id} → {m['status']} · {len(files)} file đổi ({G}/milestones/{a.id}-files.txt) · {len(m['evidence'])} ảnh bằng chứng")
-        for p in m["evidence"]:
+        for p in m["evidence"][-12:]:
             print(f"  {p}")
+        if status == "review":
+            print("\n".join(check_lines(a.id)))
+            print("Báo người dùng đúng các dòng chưa đạt ở trên; KHÔNG viết \"khớp\" / \"giống mẫu\" khi còn dòng chưa đạt.")
     else:
-        raise SystemExit("Dùng: orch.py ms <id> start \"<tiêu đề>\" | orch.py ms <id> done [--note] [--evidence ...] [--fail]")
+        raise SystemExit("Dùng: orch.py ms <id> start \"<tiêu đề>\" | ms <id> review [--note] [--evidence ...] | ms <id> done [--fail]")
+
+
+def cmd_fb(a):
+    need_init()
+    if a.action != "add":
+        rows = fb_open()
+        for p, n_open, n in rows:
+            print(f"{'MỞ  ' if n_open else 'xong'}  {p}  (" + (f"{n_open} mở / {n} mục" if n else "chưa tách mục") + ")")
+        if not rows:
+            print("(chưa có góp ý)")
+        return
+    msg = a.message
+    if a.file:
+        msg = rd(a.file, "") or ""
+    elif msg == "-":
+        msg = sys.stdin.buffer.read().decode("utf-8", errors="replace")
+    msg = msg.strip()
+    if not msg:
+        raise SystemExit("Thiếu nguyên văn góp ý (đối số, \"-\" để đọc stdin, hoặc --file)")
+    num = len(glob.glob(FB_DIR + "/*.md")) + 1
+    path = f"{FB_DIR}/{num:02d}.md"
+    att, missing = expand_evidence(a.attach)
+    wr(path, FEEDBACK.format(num=f"{num:02d}", ms=a.ms or "-", ts=now(), quote="\n".join("> " + l for l in msg.splitlines()),
+                             attach=", ".join(f"`{x}`" for x in att + missing) or "(không)"))
+    history("FB", " ".join(msg.split())[:300], file=path, milestone=a.ms)
+    print(f"Đã lưu nguyên văn: {path}\nViệc kế: điền bảng \"Tách mục\" trong file đó (mỗi ý 1 dòng) TRƯỚC khi sửa code.")
+
+
+def cmd_check(a):
+    need_init()
+    print("\n".join(check_lines(a.ms)))
 
 
 def cmd_test(a):
@@ -325,6 +469,7 @@ def cmd_status(a):
                 print(f"  {p}")
     else:
         print("(chưa có mốc)")
+    print("\n" + "\n".join(check_lines()))
     if s.get("tasks"):
         print(f"\nDự án có {len(s['tasks'])} task kiểu cũ (worker CLI, đã bỏ): xem {G}/runs/ và {G}/HISTORY.md.")
 
@@ -344,12 +489,14 @@ def write_report(quiet=False):
                 L += ["", f"Ảnh bằng chứng {mid}:"] + [f"- `{p}`" for p in m["evidence"]]
     tests = [h for h in hist if h["event"] in ("test", "integration_test")]
     L += ["", "## Test chung"] + ([f"- `{h['ts']}` {h['msg']} — {h.get('log')}" for h in tests[-5:]] or ["- (chưa chạy)"])
-    gates = [h for h in hist if re.fullmatch(r"G[0-9S]|PLAN", h["event"].upper())]
+    gates = [h for h in hist if re.fullmatch(r"G[0-9SV]|PLAN", h["event"].upper())]
     L += ["", "## Cổng duyệt / quyết định"] + ([f"- `{h['ts']}` {h['event']}: {h['msg']}" for h in gates] or ["- (chưa có)"])
-    notes = [h for h in hist if h["event"].upper() in ("NOTE", "LEARN", "RULE", "ART")]
+    notes = [h for h in hist if h["event"].upper() in ("NOTE", "FB", "LEARN", "RULE", "ART")]
     if notes:
         L += ["", "## Góp ý của người dùng / bài học / art"] + [f"- `{h['ts']}` {h['event']}: {h['msg']}" for h in notes[-40:]]
-    bad = [f"- {mid}: {m.get('status')}" for mid, m in sorted(ms.items()) if m.get("status") != "done"]
+    label = {"review": "chờ người dùng duyệt"}
+    bad = [f"- {mid}: {label.get(m.get('status'), m.get('status'))}" for mid, m in sorted(ms.items()) if m.get("status") != "done"]
+    bad += [f"- {l.strip()}" for l in check_lines() if "chưa đạt" in l or "còn mở" in l]
     L += ["", "## Còn tồn"] + (bad or ["- Không"])
     L += ["", f"Lịch sử đầy đủ: `{G}/HISTORY.md`, `{G}/history.jsonl`. File đổi từng mốc: `{G}/milestones/<mốc>-files.txt`."]
     wr(f"{G}/REPORT.md", "\n".join(L) + "\n")
@@ -419,9 +566,13 @@ def main():
     p = sp.add_parser("phase"); p.add_argument("name"); p.set_defaults(f=cmd_phase)
     p = sp.add_parser("log"); p.add_argument("code"); p.add_argument("message", nargs="?", default="")
     p.add_argument("--file", help="đọc nội dung từ file UTF-8"); p.set_defaults(f=cmd_log)
-    p = sp.add_parser("ms"); p.add_argument("id", nargs="?"); p.add_argument("action", nargs="?", choices=["start", "done"])
+    p = sp.add_parser("ms"); p.add_argument("id", nargs="?"); p.add_argument("action", nargs="?", choices=["start", "review", "done"])
     p.add_argument("title", nargs="?"); p.add_argument("--note", default=""); p.add_argument("--evidence", nargs="*")
     p.add_argument("--fail", action="store_true"); p.set_defaults(f=cmd_ms)
+    p = sp.add_parser("fb"); p.add_argument("action", nargs="?", choices=["add"]); p.add_argument("message", nargs="?", default="")
+    p.add_argument("--file", help="đọc nguyên văn từ file UTF-8"); p.add_argument("--ms"); p.add_argument("--attach", nargs="*")
+    p.set_defaults(f=cmd_fb)
+    p = sp.add_parser("check"); p.add_argument("--ms"); p.set_defaults(f=cmd_check)
     p = sp.add_parser("test"); p.add_argument("--cmd", action="append"); p.set_defaults(f=cmd_test)
     p = sp.add_parser("status"); p.set_defaults(f=cmd_status)
     p = sp.add_parser("report"); p.set_defaults(f=cmd_report)

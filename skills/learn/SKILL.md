@@ -8,7 +8,10 @@ argument-hint: "\"<bài học / luật>\" (trống = rà lại góp ý của ng�
 
 `O = python "${CLAUDE_PLUGIN_ROOT}/scripts/orch.py"`. Dùng **ngay** khi người dùng sửa cách làm hoặc 1 lỗi lặp lần 2; không đợi cuối dự án.
 
-Nội dung = `$ARGUMENTS`. Trống → `O history --event NOTE -n 40` + rà hội thoại: liệt kê các lần người dùng phải sửa hướng, đề xuất bài học cho từng lần, hỏi người dùng giữ cái nào.
+Nội dung = `$ARGUMENTS`. Trống → đọc `.game/feedback/*.md` (nguyên văn + cột "Tôi hiểu là") + `O history --event NOTE -n 40` + rà hội thoại:
+liệt kê các lần người dùng phải sửa hướng, đề xuất bài học cho từng lần, hỏi người dùng giữ cái nào.
+Bài học tốt trả lời "bước nào của quy trình đáng lẽ bắt được lỗi này, và phải đổi bước đó thế nào", không phải "lần sau cẩn thận hơn":
+plugin đã có dòng nhắc mà lỗi vẫn lặp → dòng nhắc không đủ, phải đổi mẫu / cổng / script kiểm.
 
 1. Phân loại (hỏi nếu chưa rõ):
 

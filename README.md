@@ -1,8 +1,9 @@
 # gplay-game (plugin Claude Code)
 
 Quy trình làm game casual / puzzle mobile mới bằng Unity cho GPlay (dùng chung cho mọi cơ chế, không riêng game nào):
-intake → **nghiên cứu kỹ game tham khảo** (mổ video, teardown luật có bằng chứng, spec hình) → plan theo mốc →
-**level mẫu được duyệt** → làm từng mốc ngay trong phiên chính (tự chạy Unity, ghép ảnh so mẫu) → báo cáo. Lịch sử ở `.game/`.
+intake → **nghiên cứu kỹ game tham khảo** (mổ video, teardown luật có bằng chứng, spec hình, level chuẩn, bảng nghiệm thu hình) → plan theo mốc →
+**khung hình tĩnh được duyệt (GV)** → **level mẫu chơi được được duyệt (GS)** → làm từng mốc ngay trong phiên chính (tự chạy Unity, so từng vùng với ảnh chuẩn) → báo cáo.
+Lịch sử ở `.game/`; góp ý của người dùng lưu nguyên văn ở `.game/feedback/`; Claude chỉ đưa mốc sang "chờ duyệt", người dùng duyệt mới thành "xong".
 
 ## Lệnh
 

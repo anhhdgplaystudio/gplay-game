@@ -9,14 +9,18 @@
 | 3. Ảnh dựng ngoài Unity | `scripts/compose_dev.py`, preview layout, vẽ vùng thả / bong bóng lên ảnh | Sai vị trí, che mặt, lệch demo |
 | 4. Test Unity | EditMode / PlayMode (`-runTests -testPlatform EditMode -testResults <xml>`) | Logic thắng / thua, tiến trình, serialize |
 | 5. Tự chơi batchmode | Dựng lại từ nguồn → vào Gameplay → gọi hàm tự giải → chụp ảnh mỗi bước | Level không giải được, kẹt, hiện sai |
-| 6. So với ảnh chuẩn | `scripts/side_by_side.py <ảnh chuẩn> <ảnh game> <ra.jpg> --grid 10` rồi Read | Sai bố cục / tỉ lệ / hướng / thiếu vật thể so với game tham khảo |
+| 6. So với ảnh chuẩn | `scripts/side_by_side.py` toàn màn (`--grid 10`) + **crop từng vùng** (`--crop`), điền `visual-check.md`, `orch.py check` | Sai bố cục / tỉ lệ / hướng / thiếu vật thể; lệch chi tiết (viền, khe, bo góc, cỡ từng vật) |
 | 7. Người chơi thử | Agent ghi các bước tái hiện, người dùng kiểm cảm giác / art | Feel, độ khó, UX |
 
 Bậc 1 thay bằng lệnh compile của dự án khi dùng asmdef riêng (ghi trong game-profile). Bậc 5–6 do **phiên chính** chạy: subagent không có quyền chạy Unity có GPU.
 
 Luật:
 - **Báo kết quả có hình luôn kèm đường dẫn đầy đủ tới từng ảnh** (người dùng bấm mở được), không chỉ mô tả.
-- Không nói "giống mẫu" khi chưa ghép ảnh so; nói thẳng điểm còn khác.
+- Không nói "giống mẫu" / "khớp" khi `orch.py check --ms <mốc>` còn dòng chưa đạt; chép nguyên các dòng đó vào báo cáo.
+- Claude tự kiểm xong = `review` (chờ duyệt). `done` = người dùng đã duyệt. Không ghi "Còn tồn: không" khi người dùng chưa xem.
+- Ảnh ghép toàn màn chỉ bắt được sai lớn (bố cục, thiếu vật). Chi tiết phải so bằng ảnh crop cùng vùng: 2 ảnh "trông giống nhau" ở cỡ thu nhỏ
+  vẫn lệch vị trí từng vật, độ dày viền, khe giữa các khối.
+- So phải cùng nội dung: game chụp **level chuẩn** (`ref-level.md`), cùng trạng thái, cùng tỉ lệ khung với ảnh chuẩn.
 - **Không gọi lỗi là "có sẵn từ trước" rồi bỏ qua**: sửa hoặc báo kèm output.
 - Test chỉ chép lại code không tính; test phải fail khi hành vi hỏng.
 - Kiểm "mọi tên tồn tại" **chưa đủ**: phải xem ảnh.
@@ -51,10 +55,13 @@ Tool tự chơi nên làm thêm (rẻ, bắt được lỗi người dùng hay c
 
 ## So với ảnh chuẩn (mốc nào có hình cũng làm)
 
-1. Ảnh chuẩn từng màn nằm ở visual-spec (`<tmp>/ref/golden/`). Chụp game cùng trạng thái (giữa level, cùng màn).
-2. `side_by_side.py <chuẩn> <game> <tmp>/cmp_<mốc>.jpg --grid 10` → Read ảnh ghép. Script cảnh báo khi tỉ lệ khung lệch.
-3. Soát danh sách so (visual-spec mục 9): bố cục theo % · hướng + camera · vật thể đủ, đúng hình dáng · nền · UI. Chuyển động: chụp chuỗi ảnh giữa hành động, so với clip.
-4. Ghi điểm còn khác vào báo cáo mốc (khác có chủ ý → ghi ở visual-spec mục 8).
+1. Ảnh chuẩn từng màn nằm ở visual-spec (`<tmp>/ref/golden/`). Game dựng level chuẩn (`ref-level.md`), chụp cùng trạng thái + cùng tỉ lệ khung.
+2. Toàn màn: `side_by_side.py <chuẩn> <game> <tmp>/cmp_<mốc>.jpg --grid 10` → Read. Script cảnh báo khi tỉ lệ khung lệch.
+3. Từng dòng của `.game/research/visual-check.md` thuộc mốc: `side_by_side.py <chuẩn> <game> <tmp>/check/<mã>.jpg --crop x0,y0,x1,y1 [--grid 25]` → Read →
+   điền cột Game (số đo), cột ảnh crop, kết quả `đạt` / `lệch: <lệch gì>`. Ngưỡng ở đầu bảng (vị trí + cỡ ≤ 2 % bề ngang, màu ΔRGB ≤ 20).
+4. Chuyển động: quay video tự chơi, `study_video.py --clip` video gốc và video game cùng `--fps`, đặt 2 dải frame cạnh nhau; đo thời lượng bằng số frame, so đường đi + đội hình.
+5. Sửa xong 1 dòng → đo lại **cả** bảng của mốc (đổi camera / cỡ 1 vật làm lệch dòng khác).
+6. `orch.py check --ms <mốc>`: các dòng chưa đạt đi nguyên vào báo cáo mốc. Khác có chủ ý → kết quả `chủ ý` + ghi ở visual-spec mục 8, phải được người dùng đồng ý.
 
 ## Ngưỡng độ khó (cơ chế có solver / mô phỏng)
 

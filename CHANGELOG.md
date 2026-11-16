@@ -1,5 +1,21 @@
 # Changelog
 
+- 2026-11-14 (0.5.0): làm lại khâu phân tích hình + nghiệm thu sau dự án clone 3D thứ 2 (luật đúng ngay, nhưng level mẫu bị trả về 5 vòng về hình;
+  M1 được tự ghi "done" 6 lần; spec 9 mục của người dùng chỉ còn 1 dòng tóm tắt trong nhật ký).
+  - **Bảng nghiệm thu hình** `templates/research/visual-check.md` → `.game/research/visual-check.md`: mỗi vật thể / sự kiện có dòng số đo
+    (vị trí, cỡ, màu, hình dáng, lớp che; đường đi, thời lượng), cột Mẫu viết ở research, cột Game điền lại mỗi vòng build; có bước soát theo vùng 3 × 4 ô
+    và câu hỏi G1 "điều gì sai là bạn thấy ngay". Thay danh sách so 5 dòng ở visual-spec mục 9.
+  - **Level chuẩn** `.game/research/ref-level.md`: level mẫu là 1 level của game gốc chép lại, để ảnh so là 1 : 1.
+  - **Nguồn hình cao ≥ 1080 px** là điều kiện của bước thu nguồn, không đợi bị chê mới tìm.
+  - **Tách cổng**: M1 khung hình tĩnh → GV, M2 level mẫu chơi được → GS (trước: 1 mốc, 1 cổng GS). Luật lõi + test chạy song song ở M1.
+  - **`orch.py`**: `ms <mốc> review` (tự kiểm xong, chờ duyệt); `ms done` bị từ chối khi bảng nghiệm thu của mốc còn dòng chưa đạt, còn góp ý mở,
+    hoặc mốc có cổng (`config gates`, dự án mới: M1 → GV, M2 → GS) mà chưa ghi cổng; `fb add` lưu nguyên văn góp ý vào `.game/feedback/NN.md` kèm bảng tách mục;
+    `check` tóm tắt bảng + góp ý mở; REPORT "Còn tồn" liệt kê dòng chưa đạt, mốc `review` ghi "chờ người dùng duyệt". Dự án cũ không có `gates` chạy như trước.
+  - **`side_by_side.py --crop x0,y0,x1,y1`**: cắt cùng 1 vùng ở 2 ảnh rồi phóng to, mỗi dòng bảng nghiệm thu 1 ảnh crop.
+  - **Xử lý góp ý** (pipeline.md): lưu nguyên văn → tách mục → hỏi lại mục có 2 cách hiểu → sửa bảng / spec → soát cả vùng → sửa code → đo lại cả bảng;
+    cùng cổng bị trả về lần 2 cùng loại → nghiên cứu lại cả màn.
+  - build: số bố cục gom vào 1 file dữ liệu; gửi ảnh nháp sớm ở M1; có asset gốc thì soi từng mesh / sprite riêng lẻ trước khi đặt vào scene.
+
 - 2026-11-13 (0.4.0): bỏ hẳn worker CLI (mỗi task 1 phiên claude + git worktree): người dùng không muốn nhiều worktree / phiên, tính năng chưa từng
   chạy thật và chiếm nửa `orch.py`. Xoá lệnh `run` / `branch` / `merge` / `open` / `done` / `accept`, `reference/cli-workers.md`, `templates/tasks/`.
   `orch.py` còn là sổ trạng thái (init, phase, log, ms, status, report, history, config, test), ~440 dòng (trước ~1400). Việc song song: subagent cùng phiên,

@@ -1,6 +1,6 @@
 ---
 name: gplay-game
-description: Quy trình làm game puzzle casual mobile mới bằng Unity, từ mở dự án tới phát hành - nghiên cứu kỹ game tham khảo (mổ video gameplay, teardown luật chơi có bằng chứng, spec hình và luồng màn), dựng dự án từ base template, chốt cơ chế chơi (kéo thả, tìm đồ, giải đố từng bước, match/tile, sort, merge, hoặc cơ chế mới theo teardown), level mẫu được duyệt rồi mới làm tiếp theo mốc, pipeline art PSD sang level dữ liệu, importer, database level, tự chơi thử batchmode và ghép ảnh so mẫu, UI theo mockup, localization nhiều ngôn ngữ, quảng cáo / IAP / analytics, checklist phát hành, art theo yêu cầu bằng Codex / Gemini. Dùng khi bắt đầu một game puzzle / casual mới, phân tích / clone cơ chế một game tham khảo, dựng cơ chế hoặc pipeline level đầu tiên, viết AGENTS.md / game-profile cho dự án game, hoặc khi người dùng nhắc "game mới", "dự án mới", "làm game puzzle".
+description: Quy trình làm game puzzle casual mobile mới bằng Unity, từ mở dự án tới phát hành - nghiên cứu kỹ game tham khảo (mổ video gameplay, teardown luật chơi có bằng chứng, spec hình và luồng màn), dựng dự án từ base template, chốt cơ chế chơi (kéo thả, tìm đồ, giải đố từng bước, match/tile, sort, merge, hoặc cơ chế mới theo teardown), bảng nghiệm thu hình đo từng vật thể, khung hình tĩnh rồi level mẫu được duyệt mới làm tiếp theo mốc, lưu nguyên văn góp ý, pipeline art PSD sang level dữ liệu, importer, database level, tự chơi thử batchmode và ghép ảnh so mẫu, UI theo mockup, localization nhiều ngôn ngữ, quảng cáo / IAP / analytics, checklist phát hành, art theo yêu cầu bằng Codex / Gemini. Dùng khi bắt đầu một game puzzle / casual mới, phân tích / clone cơ chế một game tham khảo, dựng cơ chế hoặc pipeline level đầu tiên, viết AGENTS.md / game-profile cho dự án game, hoặc khi người dùng nhắc "game mới", "dự án mới", "làm game puzzle".
 ---
 
 # Làm game puzzle casual mới (Unity, mobile)
@@ -22,11 +22,17 @@ Skill này dùng cho **mọi** game casual / puzzle, không riêng cơ chế nà
 Lệnh: `start` (intake) · `research` · `plan` · `build` (làm mốc kế) · `status` (tiến độ + bước kế) · `learn`. Làm theo [reference/pipeline.md](reference/pipeline.md):
 
 ```
-start ─G0→ research ─G1→ plan ─G2→ build M1 "level mẫu" ─GS→ build M2..Mn → report ─G3→ learn
+start ─G0→ research ─G1→ plan ─G2→ build M1 "khung hình tĩnh" ─GV→ build M2 "level mẫu chơi được" ─GS→ build M3..Mn → report ─G3→ learn
 ```
-- **Nghiên cứu là bước quan trọng nhất** ([research.md](reference/research.md)): phải có video gameplay, mổ bằng `scripts/study_video.py`, viết teardown luật chơi
-  (mỗi luật gắn frame bằng chứng) + spec hình và luồng màn. Luật lõi còn `[suy luận]` thì chưa được lập plan. Không hỏi người dùng luật của game gốc khi video trả lời được.
-- **Level mẫu trước, mọi thứ khác sau** (cổng GS): 1 level chơi đúng luật, màn chơi ghép cạnh ảnh chuẩn (`scripts/side_by_side.py`), người dùng duyệt rồi mới làm meta / UI / nội dung.
+- **Nghiên cứu là bước quan trọng nhất** ([research.md](reference/research.md)): phải có video gameplay (hình: cao ≥ 1080 px), mổ bằng `scripts/study_video.py`,
+  viết teardown luật chơi (mỗi luật gắn frame bằng chứng) + spec hình và luồng màn + **level chuẩn** chép từ game gốc (`ref-level.md`) +
+  **bảng nghiệm thu hình** (`visual-check.md`: số đo từng vật thể / sự kiện). Luật lõi còn `[suy luận]` hoặc bảng chưa có cột Mẫu thì chưa được lập plan.
+  Không hỏi người dùng luật của game gốc khi video trả lời được.
+- **Hình tĩnh trước, chơi được sau, mọi thứ khác sau nữa**: M1 dựng lại đúng frame đầu của level chuẩn (cổng GV), M2 mới nối luật + chuyển động (cổng GS);
+  so bằng ảnh ghép toàn màn + ảnh crop từng vùng (`scripts/side_by_side.py --crop`). Người dùng duyệt GS rồi mới làm meta / UI / nội dung.
+- **Claude không tự chấm "xong"**: tự kiểm xong = `orch.py ms <mốc> review` kèm các dòng bảng nghiệm thu chưa đạt; `done` chỉ sau khi người dùng duyệt
+  (`orch.py` từ chối nếu còn dòng chưa đạt / góp ý mở / chưa ghi cổng).
+- **Góp ý của người dùng lưu nguyên văn** (`orch.py fb add`) rồi tách mục; mục có 2 cách hiểu thì hỏi lại trước khi sửa; cổng bị trả về lần 2 cùng loại → nghiên cứu lại, không vá tiếp.
 - **Phiên chính tự làm từng mốc** (code, chạy Unity, xem ảnh); phần lớn + độc lập giao subagent trong cùng phiên. Không mặc định mở phiên claude CLI riêng cho từng task
   và không dùng git worktree (cách chia việc: pipeline.md mục "Giao subagent").
 - **Art theo yêu cầu**: mặc định hình tạm đúng kích thước + bố cục; người dùng bảo vẽ thì dùng Codex / Gemini ([art-on-demand.md](reference/art-on-demand.md)).
@@ -37,9 +43,9 @@ start ─G0→ research ─G1→ plan ─G2→ build M1 "level mẫu" ─GS→ b
 
 | Giai đoạn | Việc chính | Tài liệu |
 |---|---|---|
-| 0. Nghiên cứu | Thu video, teardown luật, spec hình + luồng màn, đọc base | [research.md](reference/research.md) |
+| 0. Nghiên cứu | Thu video, teardown luật, spec hình + luồng màn, level chuẩn, bảng nghiệm thu hình, đọc base | [research.md](reference/research.md) |
 | 1. Mở dự án | Clone base, xoá gameplay cũ, đổi identity, viết AGENTS.md ngắn + game-profile, gắn hook | [new-project.md](reference/new-project.md), [rules-and-hooks.md](reference/rules-and-hooks.md) |
-| 2. Cơ chế + level mẫu | Luật C# thuần có test, 1 level tay chơi được, hàm tự giải, hình khớp ảnh chuẩn | [mechanics.md](reference/mechanics.md), [verification.md](reference/verification.md) |
+| 2. Khung hình tĩnh + level mẫu | Scene dựng từ level chuẩn khớp bảng nghiệm thu (GV); luật C# thuần có test, chơi được, chuyển động khớp clip, hàm tự giải (GS) | [mechanics.md](reference/mechanics.md), [verification.md](reference/verification.md) |
 | 3. Pipeline level | Định dạng art xuất, file level dữ liệu, importer, database, validator, ngưỡng độ khó | [level-pipeline.md](reference/level-pipeline.md), [art-spine.md](reference/art-spine.md) |
 | 4. Luồng màn + UI + meta | Loading / Home / Game, UI theo mockup, popup thắng / thua, coin, hint, quảng cáo | [ui-from-mockup.md](reference/ui-from-mockup.md), [meta-monetization.md](reference/meta-monetization.md) |
 | 5. Sản xuất nội dung | Làm level hàng loạt, text / voice, giao việc song song | [localization.md](reference/localization.md), [multi-agent.md](reference/multi-agent.md) |
@@ -47,7 +53,7 @@ start ─G0→ research ─G1→ plan ─G2→ build M1 "level mẫu" ─GS→ b
 
 Mọi giai đoạn dùng chung: [verification.md](reference/verification.md) (thang kiểm tra + tiêu chí xong).
 
-Mặc định **gọn nhẹ**: không viết GDD dài; tài liệu duy nhất phải kỹ là teardown + visual-spec. Thời gian dồn vào nghiên cứu, level chơi được, validator, chạy thử, ảnh bằng chứng.
+Mặc định **gọn nhẹ**: không viết GDD dài; tài liệu phải kỹ là teardown + visual-spec + bảng nghiệm thu hình. Thời gian dồn vào nghiên cứu, level chơi được, validator, chạy thử, ảnh bằng chứng.
 
 ## Luật cứng (mọi dự án Unity)
 
@@ -68,7 +74,8 @@ Mặc định **gọn nhẹ**: không viết GDD dài; tài liệu duy nhất ph
 - [ ] Build C# sạch (không dòng " error ")
 - [ ] Validator dữ liệu (level / layout / key) không lỗi
 - [ ] Chạy thử: tự chơi hết level / màn đổi, đã XEM ảnh chụp
-- [ ] Có hình: đã ghép cạnh ảnh chuẩn (side_by_side) và soát danh sách so của visual-spec; UI không méo, không thiếu glyph
+- [ ] Có hình: game chụp level chuẩn, đã ghép toàn màn + crop từng vùng với ảnh chuẩn, `orch.py check --ms <mốc>` không còn dòng chưa đạt (còn → chép các dòng đó vào báo cáo, trạng thái `review`); UI không méo, không thiếu glyph
+- [ ] Không còn góp ý mở trong `.game/feedback/`; mốc có cổng đã được người dùng duyệt
 - [ ] Không sửa tay YAML, không ghi đè asset chỉnh tay, không chạm bí mật
 - [ ] Text mới có key localization và đã đẩy lên nguồn
 - [ ] Báo: lệnh đã chạy, file đổi, kết quả kiểm tra, ĐƯỜNG DẪN ĐẦY ĐỦ từng ảnh, việc CHƯA làm, tác dụng phụ còn lại
@@ -93,6 +100,7 @@ Mặc định **gọn nhẹ**: không viết GDD dài; tài liệu duy nhất ph
 - `templates/unity/GPlayTestKit/` + `scripts/unity_run.py` (compile / exec / playtest / video): bộ tự chơi dùng chung, chụp ảnh, kiểm méo UI /
   chữ tràn / thiếu glyph, quay video ([autoplay-kit.md](reference/autoplay-kit.md)). Editor đang mở: [unity-mcp.md](reference/unity-mcp.md).
 - `scripts/study_video.py <video> <thư mục ra> [--clip t0 t1]`: mổ video gameplay (sheet frame đánh số, điểm cắt cảnh, bảng màu, đoạn frame liên tiếp).
-- `scripts/side_by_side.py <ảnh mẫu> <ảnh game> <ra.jpg> [--grid 10] [--blend]`: ghép ảnh so, lưới % để đọc tỉ lệ bố cục.
-- `scripts/orch.py`: sổ trạng thái + lịch sử `.game/` (init / phase / log / ms / status / report / history / config / test), xem pipeline.md.
-- `templates/plan.md` (theo mốc), `templates/research/` (teardown, visual-spec, base), `templates/art-brief.md`.
+- `scripts/side_by_side.py <ảnh mẫu> <ảnh game> <ra.jpg> [--grid 10] [--crop x0,y0,x1,y1] [--blend]`: ghép ảnh so, lưới % để đọc tỉ lệ bố cục;
+  `--crop` cắt cùng 1 vùng ở 2 ảnh rồi phóng to để so từng vật thể.
+- `scripts/orch.py`: sổ trạng thái + lịch sử `.game/` (init / phase / log / ms start-review-done / fb / check / status / report / history / config / test), xem pipeline.md.
+- `templates/plan.md` (theo mốc), `templates/research/` (teardown, visual-spec, visual-check, base), `templates/art-brief.md`.

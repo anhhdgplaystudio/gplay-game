@@ -6,3 +6,5 @@ Luật kiểm được bằng máy (cấm sửa đường dẫn, cấm lệnh, f
 - Lệnh bị từ chối quyền thì không gọi vòng (script bọc, wrapper, đổi shell); ghi nguyên lệnh vào báo cáo để người điều phối chạy.
 - Ảnh UI hiện đúng tỉ lệ gốc; cần co giãn thì dùng 9-slice, không scale lệch 2 chiều.
 - Báo kết quả có hình thì kèm đường dẫn đầy đủ tới từng ảnh.
+- Tự kiểm xong chỉ được báo "chờ duyệt" kèm các điểm còn lệch so với mẫu; "xong" là lời của người dùng.
+- Góp ý của người dùng ghi lại nguyên văn trước khi làm; diễn giải ghi riêng, có 2 cách hiểu thì hỏi lại kèm ảnh.

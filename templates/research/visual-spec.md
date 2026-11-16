@@ -2,6 +2,8 @@
 
 Ảnh chuẩn (đường dẫn đầy đủ): gameplay `<tmp>/ref/golden/game.jpg` · home `...` · loading `...` · thắng `...` · thua `...` · popup `...`
 Ảnh lưới tỉ lệ: `<tmp>/ref/grid.jpg`. Ảnh người dùng gửi = chuẩn cao nhất.
+Nguồn đo: video `<id>` khung game `<rộng> × <cao>` px, `<fps>` fps (cao < 1080 → ghi rõ: số đo chi tiết chưa tin được, đang tìm nguồn nét hơn).
+Level chuẩn: `.game/research/ref-level.md` · Bảng nghiệm thu (số đo từng vật thể): `.game/research/visual-check.md`.
 
 ## 1. Luồng màn
 ```
@@ -38,9 +40,9 @@ Loading → Home → Game → (Thắng → Game kế | Thua → Hồi sinh / Ch�
 ## 8. Điểm sẽ khác game gốc (đã thống nhất với người dùng)
 - ...
 
-## 9. Danh sách so khi nghiệm thu (mỗi mốc có hình đều so lại)
-- [ ] Bố cục đúng tỉ lệ mục 2 (lệch ≤ 5%)
-- [ ] Hướng + camera đúng mục 3
-- [ ] Vật thể đủ + đúng hình dáng mục 4
-- [ ] Chuyển động đúng đường + thứ tự mục 5
-- [ ] Luồng màn đủ mục 1
+## 9. Nghiệm thu
+Không dùng danh sách chung chung ở đây. So theo **`.game/research/visual-check.md`** (mỗi vật thể / sự kiện có dòng số đo + ảnh crop);
+mỗi vòng build điền lại cả cột Game, `orch.py check` đếm số dòng đạt.
+
+## Thay đổi
+- <ngày>: bản đầu

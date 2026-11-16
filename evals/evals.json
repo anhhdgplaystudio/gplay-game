@@ -76,6 +76,9 @@
       "Đọc reference/research.md; tự tìm + tải video gameplay vào ổ tạm, hoặc xin người dùng file video; không lập luật từ ảnh store",
       "Chạy study_video.py, Read sheet.jpg + frame gốc, dùng --clip cho các chuyển động",
       "Viết teardown.md (mỗi luật có nhãn bằng chứng) và visual-spec.md (luồng màn, bố cục theo %, camera, vật thể, chuyển động)",
+      "Kiểm khung game trong study.json; nguồn cao < 1080 px thì tìm thêm video nét trước khi đo hình",
+      "Viết ref-level.md (dữ liệu 1 level của game gốc chép từ frame đầu level) và visual-check.md (dòng số đo cột Mẫu cho từng vật thể / sự kiện, đo bằng side_by_side --crop, có soát theo vùng)",
+      "Ở G1 hỏi thêm 'nhìn ảnh chuẩn, điều gì sai là bạn thấy ngay?' và thêm dòng [người dùng G1] vào bảng",
       "Giao subagent đọc base song song",
       "Luật lõi còn [suy luận] thì soi thêm, không hỏi người dùng luật của game gốc; câu hỏi nào về luật phải kèm đường dẫn frame",
       "Trình thẻ đối chiếu kèm đường dẫn frame rồi mới ghi G1"
@@ -84,18 +87,42 @@
   {
     "query": "Plan ok, làm đi.",
     "expected_behavior": [
-      "Ghi G2, bắt đầu mốc M1 level mẫu bằng orch.py ms M1 start, làm ngay trong phiên chính",
-      "Tự chạy Unity tự chơi + chụp ảnh, Read ảnh, ghép side_by_side với ảnh chuẩn",
-      "orch.py ms M1 done kèm --evidence; báo người dùng đường dẫn đầy đủ từng ảnh",
-      "Hỏi cổng GS; không làm M2 khi chưa được duyệt"
+      "Ghi G2, bắt đầu mốc M1 khung hình tĩnh bằng orch.py ms M1 start: dựng scene từ ref-level.md (level của game gốc), chưa làm input / animation; luật lõi + test giao subagent song song",
+      "Gửi ảnh nháp sớm khi đủ vật thể chính; số bố cục gom vào 1 file dữ liệu",
+      "Tự chạy Unity chụp ảnh, Read ảnh, ghép side_by_side toàn màn + --crop từng dòng, điền cột Game của visual-check.md, chạy orch.py check --ms M1",
+      "orch.py ms M1 review (không tự done) kèm --evidence; báo người dùng đường dẫn đầy đủ từng ảnh + các dòng chưa đạt, không viết 'khớp mẫu' khi còn dòng chưa đạt",
+      "Hỏi cổng GV; được duyệt mới log GV + ms M1 done; không làm M2 khi chưa có GV, không làm M3 khi chưa có GS"
     ]
   },
   {
     "query": "Camera đang ngược so với game gốc, sửa đi.",
     "expected_behavior": [
-      "Ghi O log NOTE, sửa visual-spec.md trước rồi mới sửa code",
-      "Chụp lại, ghép cạnh ảnh chuẩn, đưa đường dẫn ảnh",
-      "Lỗi cùng loại lặp lần 2 thì ghi bài học bằng /gplay-game:learn"
+      "Lưu nguyên văn bằng orch.py fb add, điền bảng tách mục, sửa visual-spec.md / visual-check.md trước rồi mới sửa code",
+      "Soát lại cả vùng ảnh liên quan (bảng nghiệm thu đã sót dòng này), chụp lại, đo lại cả bảng của mốc, đưa đường dẫn ảnh ghép + ảnh crop",
+      "orch.py ms review, không tự done; lỗi cùng loại lặp lần 2 thì nghiên cứu lại cả màn + ghi bài học bằng /gplay-game:learn"
+    ]
+  },
+  {
+    "query": "Tranh to quá so với mẫu.",
+    "expected_behavior": [
+      "orch.py fb add nguyên văn; không tự suy thành quy tắc chung (vd 'luôn rộng N %')",
+      "Câu có ≥ 2 cách hiểu (to do cỡ từng ô, do số ô, do camera?) → đo trên ảnh crop rồi hỏi lại bằng AskUserQuestion kèm ảnh trước khi sửa",
+      "Sửa cột Mẫu / thêm dòng ở visual-check.md, sửa code, đo lại cả bảng, ms review"
+    ]
+  },
+  {
+    "query": "(người dùng gửi 1 spec 9 mục về gara, camera, model, map, màu, nhân vật, UI sau khi xem level mẫu lần thứ 3)",
+    "expected_behavior": [
+      "orch.py fb add --file lưu nguyên cả spec, tách đủ 9 mục thành 9+ dòng, không tóm tắt thành 1 dòng NOTE",
+      "Nhận ra cổng đã bị trả về ≥ 2 lần về hình → dừng vá, nghiên cứu lại bảng nghiệm thu cho cả màn, trình bảng cho người dùng trước khi code",
+      "Không ms done khi còn mục mở; báo rõ mục nào chưa làm"
+    ]
+  },
+  {
+    "query": "M1 xong chưa?  (bảng nghiệm thu còn 3 dòng lệch, người dùng chưa xem ảnh)",
+    "expected_behavior": [
+      "Trả lời 'chờ duyệt, còn 3 dòng lệch' kèm đúng 3 dòng + ảnh crop, không nói 'xong' / 'khớp'",
+      "Không gọi orch.py ms M1 done (lệnh sẽ từ chối); không ghi 'Còn tồn: không'"
     ]
   },
   {

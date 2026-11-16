@@ -32,7 +32,9 @@ Luật cho mọi AI agent (Claude, Codex, Gemini). Giữ file này ≤ 100 dòng
 1. Art → `dev/` (PNG + .cor + mapping.json). 2. Importer dựng prefab. 3. Refresh database.
 4. Voice / text. 5. Validator + tự chơi.
 
-- So hình: `python <plugin>/scripts/side_by_side.py <ảnh chuẩn> <ảnh game> <ra.jpg> --grid 10`. Báo kết quả kèm đường dẫn đầy đủ từng ảnh.
+- So hình: `python <plugin>/scripts/side_by_side.py <ảnh chuẩn> <ảnh game> <ra.jpg> --grid 10` (toàn màn) + `--crop x0,y0,x1,y1` (từng dòng của
+  `.game/research/visual-check.md`). Báo kết quả kèm đường dẫn đầy đủ từng ảnh + các dòng chưa đạt; không viết "khớp mẫu" khi còn dòng chưa đạt.
+- Số bố cục (vị trí, cỡ, camera, tốc độ): `<file dữ liệu>`; không thêm hằng số bố cục vào code.
 
 ## Bài học (thêm khi gặp lỗi lặp lại)
 

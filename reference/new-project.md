@@ -1,7 +1,7 @@
 # Mở dự án game mới
 
 Theo pipeline `/gplay-game:*` thì các câu hỏi dưới đây đã được trả lời ở intake / G1 / G2 (đọc `.game/intake.md`, `questions.md`, `research/base.md` trước, chỉ hỏi phần còn thiếu),
-và việc dựng dự án nằm trong mốc M1 (level mẫu).
+và việc dựng dự án nằm trong mốc M1 (khung hình tĩnh).
 
 ## 1. Hỏi người dùng (ngắn, 1 lần)
 
@@ -54,7 +54,8 @@ Dự án trắng (không base): tạo 3 scene Loading / Home / Gameplay, singlet
 
 ## 5. Thứ tự sau khi mở
 
-1. **Level mẫu** (mốc M1, cổng GS): 1 level dựng tay chơi được đúng teardown + hàm tự giải + hình khớp ảnh chuẩn (mechanics.md, verification.md).
+1. **Khung hình tĩnh** (mốc M1, cổng GV): scene màn chơi dựng từ level chuẩn (`.game/research/ref-level.md`), khớp bảng nghiệm thu hình (verification.md).
+   **Level mẫu chơi được** (mốc M2, cổng GS): level đó chơi đúng teardown + hàm tự giải + chuyển động khớp clip (mechanics.md).
 2. Chốt định dạng level dữ liệu + importer + validator + ngưỡng độ khó ([level-pipeline.md](level-pipeline.md)).
 3. Làm 3–5 level thật qua pipeline, chạy thử → sửa pipeline.
 4. Luồng màn Loading → Home → Game, UI theo mockup + vòng meta.

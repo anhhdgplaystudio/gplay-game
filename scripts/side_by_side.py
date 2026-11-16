@@ -1,10 +1,12 @@
 """Ghép ảnh mẫu (frame game tham khảo / mockup) cạnh ảnh chụp game đang làm để so bằng mắt.
 
 python side_by_side.py <ảnh mẫu> <ảnh game> <ra.jpg> [--labels "Mẫu" "Game"] [--grid 10] [--blend] [--height 1280]
-                       [--crop-ref x0,y0,x1,y1] [--crop-ours x0,y0,x1,y1]
+                       [--crop x0,y0,x1,y1] [--crop-ref x0,y0,x1,y1] [--crop-ours x0,y0,x1,y1]
   --grid N      kẻ lưới mỗi N% chiều cao / rộng lên cả 2 ảnh, có số % → đọc tỉ lệ bố cục (vùng nào chiếm bao nhiêu %)
   --blend       thêm cột thứ 3 trộn 50% (chỉ có nghĩa khi 2 ảnh cùng tỉ lệ khung)
-  --crop-*      cắt trước khi so, toạ độ theo phần trăm 0..100 (vd bỏ thanh trạng thái: 0,4,100,100)
+  --crop        cắt CÙNG 1 vùng ở cả 2 ảnh rồi phóng to (toạ độ % 0..100): so từng vật thể / từng vùng, vd 20,15,80,35.
+                Ảnh ghép toàn màn bị thu nhỏ nên không thấy lệch chi tiết (viền, khe, bo góc): mỗi dòng bảng nghiệm thu so bằng 1 ảnh crop.
+  --crop-ref / --crop-ours  cắt riêng từng ảnh (vd bỏ thanh trạng thái: 0,4,100,100); ghi đè --crop
 In ra tỉ lệ khung 2 ảnh và cảnh báo khi lệch > 3% (so bố cục sẽ không chính xác).
 Cần Pillow (pip install pillow).
 """
@@ -57,6 +59,7 @@ def main():
     ap.add_argument("--grid", type=float, default=0)
     ap.add_argument("--blend", action="store_true")
     ap.add_argument("--height", type=int, default=1280)
+    ap.add_argument("--crop", help="cắt cùng 1 vùng (%%) ở cả 2 ảnh")
     ap.add_argument("--crop-ref")
     ap.add_argument("--crop-ours")
     a = ap.parse_args()
@@ -64,8 +67,10 @@ def main():
         from PIL import Image, ImageDraw
     except ImportError:
         sys.exit("Thiếu Pillow: pip install pillow")
-    ref = crop_pct(Image.open(a.ref).convert("RGB"), a.crop_ref)
-    ours = crop_pct(Image.open(a.ours).convert("RGB"), a.crop_ours)
+    ref = crop_pct(Image.open(a.ref).convert("RGB"), a.crop_ref or a.crop)
+    ours = crop_pct(Image.open(a.ours).convert("RGB"), a.crop_ours or a.crop)
+    if a.crop and ref.height < ref.width:  # vùng ngang: giữ bề ngang đủ lớn, không ép cao 1280
+        a.height = min(a.height, max(240, int(900 * ref.height / ref.width)))
     r1, r2 = ref.width / ref.height, ours.width / ours.height
     H = a.height
     ref = ref.resize((max(1, int(H * r1)), H), Image.LANCZOS)

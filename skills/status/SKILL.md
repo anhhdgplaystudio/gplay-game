@@ -14,15 +14,19 @@ argument-hint: "[ghi chú | history <bộ lọc> | config <khoá> <giá trị> |
    - `history ...` → `O history` với bộ lọc (`--task`, `--file`, `--event`, `--since`, `-n`);
    - `config [khoá [giá trị]]` → `O config ...` (đổi thì nói rõ đã đổi gì);
    - `report` → `O report`, trình `.game/REPORT.md`;
-   - còn lại = ghi chú của người dùng → `O log NOTE "<ghi chú>"` rồi báo trạng thái.
-3. Tóm tắt (≤ 10 dòng): giai đoạn · cổng đã qua · mốc xong / đang làm (thời gian) · đường dẫn ảnh bằng chứng mới nhất · việc dở (mốc `doing`, task CLI `review` / `ngắt?`) · **bước kế**:
+   - `check` → `O check` (bảng nghiệm thu hình + góp ý còn mở);
+   - còn lại = ghi chú của người dùng → `O log NOTE "<ghi chú>"` (là góp ý về sản phẩm → `O fb add "<nguyên văn>"`) rồi báo trạng thái.
+3. Tóm tắt (≤ 10 dòng): giai đoạn · cổng đã qua · mốc xong / chờ duyệt (`review`) / đang làm (thời gian) · đường dẫn ảnh bằng chứng mới nhất ·
+   số dòng bảng nghiệm thu chưa đạt + góp ý còn mở · việc dở · **bước kế**:
 
 | Trạng thái | Bước kế |
 |---|---|
 | chưa G0 | `/gplay-game:start` |
 | G0, chưa G1 | `/gplay-game:research` |
 | G1, chưa G2 | `/gplay-game:plan` |
-| G2, chưa GS | `/gplay-game:build` (M1 level mẫu) |
+| G2, chưa GV | `/gplay-game:build` (M1 khung hình tĩnh) |
+| GV, chưa GS | `/gplay-game:build` (M2 level mẫu chơi được) |
+| mốc `review` | hỏi người dùng duyệt (kèm ảnh + dòng chưa đạt); có góp ý → `/gplay-game:build "<góp ý>"` |
 | GS, còn mốc | `/gplay-game:build` |
 | hết mốc | `O report` → G3 → `/gplay-game:learn` |
 

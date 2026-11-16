@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "gplay-game",
-  "version": "0.4.0",
-  "description": "GPlay: quy trình làm game casual / puzzle mobile mới bằng Unity - nghiên cứu kỹ game tham khảo, level mẫu, làm theo mốc",
+  "version": "0.5.0",
+  "description": "GPlay: quy trình làm game casual / puzzle mobile mới bằng Unity - nghiên cứu kỹ game tham khảo, bảng nghiệm thu hình, khung hình tĩnh + level mẫu được duyệt, làm theo mốc",
   "author": {
     "name": "anhhd",
     "email": "anhhd.gplaystudio@gmail.com"
